@@ -1,0 +1,24 @@
+{
+  "name": "hds",
+  "version": "0.0.0",
+  "description": "Hierarchical data store",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "cheminfo/hds",
+  "keywords": [
+    "hierarchical",
+    "data",
+    "store"
+  ],
+  "author": {
+      "name": "Michaël Zasso",
+      "email": "michael.zasso@epfl.ch"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cheminfo/hds/issues"
+  },
+  "homepage": "https://github.com/cheminfo/hds"
+}
