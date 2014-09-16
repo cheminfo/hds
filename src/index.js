@@ -1,3 +1,5 @@
+'use strict';
+
 var extend = require('extend'),
     mongoose = require('mongoose'),
     debug = require('debug')('hds:init'),

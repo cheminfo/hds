@@ -1,1 +1,1 @@
-module.exports = require('./src/hds');
+module.exports = require('./src/index');
