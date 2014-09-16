@@ -354,7 +354,7 @@ exports.get = function getKindModel(name, callback) {
 
 exports.getSync = function getKindModelSync(name) {
     if (!kinds[name]) {
-        throw new Error('Kind ' + name + 'is not loaded');
+        throw new Error('Kind ' + name + ' is not loaded');
     }
     return kinds[name];
 };
