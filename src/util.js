@@ -17,4 +17,5 @@ exports.bindPromise = function bindPromise(promise, callback) {
             callback(null, res);
         }, callback);
     }
+    return promise;
 };

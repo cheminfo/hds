@@ -368,8 +368,7 @@ exports.get = function getKindModel(name, callback) {
             });
         }
     });
-    util.bindPromise(prom, callback);
-    return prom;
+    return util.bindPromise(prom, callback);
 };
 
 exports.getSync = function getKindModelSync(name) {
