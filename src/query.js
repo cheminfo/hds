@@ -2,7 +2,10 @@
 
 var Promise = require('bluebird'),
     Kind = require('./kind'),
-    extend = require('extend');
+    extend = require('extend'),
+    util = require('./util');
+
+var customOperators = {};
 
 var defaultOptions = {
     skip: 0,
@@ -11,8 +14,6 @@ var defaultOptions = {
 };
 
 var Query = function Query(target, query, options) {
-
-    var self = this;
 
     this._targetModel = Kind.getSync(target);
     this._options = extend({}, defaultOptions, options);
@@ -26,7 +27,6 @@ var Query = function Query(target, query, options) {
 
 Query.prototype.count = function (callback) {
 
-    var self = this;
     this._executionPromise.then(function (result) {
         callback(null, result.length);
     }, callback);
@@ -58,7 +58,59 @@ Query.prototype.all = function (callback) {
 };
 
 Query.prototype.exec = function(callback) {
+    throw new Error('Unimplemented exec');
     // TODO iterator version
+};
+
+Query.createOperator = function(name, method) {
+    if(name[0] !== '$') {
+        name = '$'+name;
+    }
+    if(customOperators[name]) {
+        throw new Error('There is already an operator with name '+name);
+    }
+    if(typeof method !== 'function') {
+        throw new Error('Provided operator is not a function');
+    }
+    if(method.length !== 2) {
+        throw new Error('Operators require two parameters (target and query)');
+    }
+    customOperators[name] = method;
+};
+
+Query.apply = function(query, model, callback) {
+    var mainPromise = new Promise(function (resolve, reject) {
+
+        var prom;
+        if(typeof model === 'string') {
+            prom = Kind.get(model);
+        } else {
+            prom = Promise.resolve(model);
+        }
+
+        prom.then(function(kindModel) {
+
+            kindModel.aggregate([
+                {
+                    $match: query
+                },
+                {
+                    $project: {
+                        _id: 1
+                    }
+                }
+            ], function (err, result) {
+                if (err) {
+                    return reject(err);
+                }
+                resolve(result.map(extractId))
+            });
+
+        }, reject);
+
+    });
+    util.bindPromise(mainPromise, callback);
+    return mainPromise;
 };
 
 /*
@@ -99,11 +151,7 @@ Query.prototype.exec = function(callback) {
  */
 
 function handleQuery(fullQuery) {
-    return new Promise(function (resolve, reject) {
-
-        doQuery(fullQuery.target, fullQuery.query).then(resolve, reject);
-
-    });
+    return doQuery(fullQuery.target, fullQuery.query);
 }
 
 function doQuery(target, query) {
@@ -135,14 +183,10 @@ function doQuery(target, query) {
     }
 
     // Search for operator
-    if (query.$and) {
-        return combineQueryAnd(target, query.$and);
-    }
-    if (query.$or) {
-        return combineQueryOr(target, query.$or);
-    }
-    if (query.$elseOr) {
-        return combineQueryElseOr(target, query.$elseOr);
+    for(var i in query) {
+        if(i[0] === '$' && customOperators[i]) {
+            return customOperators[i](target, query[i]);
+        }
     }
 
     // Unable to process query
@@ -284,6 +328,8 @@ function combineQueryElseOr(target, query) {
     });
 }
 
+function projectQuery(target, query){throw new Error('Unimplemented project entry')} // TODO handle project query
+
 function extractId(val) {
     return val._id;
 }
@@ -293,5 +339,10 @@ function toIdIn(result) {
         _id: {$in: result}
     };
 }
+
+Query.createOperator('$and', combineQueryAnd);
+Query.createOperator('$or', combineQueryOr);
+Query.createOperator('$elseOr', combineQueryElseOr);
+Query.createOperator('$project', projectQuery);
 
 module.exports = Query;

@@ -48,6 +48,13 @@ var kindProvider = function defaultProvider(kind, callback) {
     callback(new Error('Kind ' + kind + ' not found'));
 };
 
+var hooks = [
+    'Save',
+    'Remove',
+    'Init',
+    'Validate'
+];
+
 exports.create = function createKind(name, definition, options) {
     if (kinds[name]) {
         throw new Error('Cannot instantiate two kinds with the same name');
@@ -70,8 +77,17 @@ exports.create = function createKind(name, definition, options) {
 
     options = options || {};
 
-    if (options.preSave && typeof options.preSave === 'function') {
-        thisSchema.pre('save', options.preSave);
+    var hookName, preHookName, postHookName;
+    for (i = 0; i < hooks.length; i++) {
+        hookName = hooks[i];
+        preHookName = 'pre' + hookName;
+        if (options[preHookName] && typeof options[preHookName] === 'function') {
+            thisSchema.pre(hookName.toLowerCase(), options[preHookName]);
+        }
+        postHookName = 'post' + hookName;
+        if (options[postHookName] && typeof options[postHookName] === 'function') {
+            thisSchema.post(hookName.toLowerCase(), options[postHookName]);
+        }
     }
 
     thisSchema.index({
@@ -241,7 +257,7 @@ function getChild(child, callback) {
 }
 
 /** TODO enable setParent
-function setParent(other, callback) {
+ function setParent(other, callback) {
     var kind = this.getKind(),
         id = this._id;
     exports.getSync(kind).findById(id, function (err, that) {
@@ -263,7 +279,7 @@ function createAttachment(attachment, callback) {
         root: 'attachments',
         content_type: attachment.contentType
     }, function (err, fileData) {
-        if(err) {
+        if (err) {
             return callback(err);
         }
         var attachment = {
@@ -278,7 +294,7 @@ function createAttachment(attachment, callback) {
                 _at: attachment
             }
         }, function (err, res) {
-            if(err) {
+            if (err) {
                 return callback(err);
             }
             callback(null, attachment);
@@ -301,15 +317,15 @@ function removeAttachment(attachmentId, callback) {
     }, {
         'new': false // Important because we need to retrieve the fileId
     }, function (err, res) {
-        if(err) {
+        if (err) {
             return callback(err);
         }
-        if(!res) { // Attachment not found
-            return callback(new Error('attachment with id '+attachmentId.toString()+' not found'));
+        if (!res) { // Attachment not found
+            return callback(new Error('attachment with id ' + attachmentId.toString() + ' not found'));
         }
         callback(null); // File can be removed from GridFS later
-        for(var i = 0, ii = res._at.length; i < ii; i++) {
-            if(res._at[i]._id.toString() === attachmentId.toString()) {
+        for (var i = 0, ii = res._at.length; i < ii; i++) {
+            if (res._at[i]._id.toString() === attachmentId.toString()) {
                 mongo.removeFile(res._at[i].fileId, 'attachments', util.noop);
             }
         }
@@ -321,7 +337,7 @@ function getAttachment(attachmentId, callback) {
         _id: this._id,
         '_at._id': attachmentId
     }, '_at.$.fileId', function (err, res) {
-        if(err) {
+        if (err) {
             return callback(err);
         }
         mongo.readFile(res._at[0].fileId, {
@@ -339,17 +355,21 @@ exports.setProvider = function setKindProvider(provider) {
 };
 
 exports.get = function getKindModel(name, callback) {
-    if (kinds[name]) {
-        callback(null, kinds[name]);
-    } else {
-        kindProvider(name, function gotKindHandler(err, res) {
-            if (err) {
-                return callback(err);
-            }
-            exports.create(name, res.definition, res.options);
-            callback(null, kinds[name]);
-        });
-    }
+    var prom = new Promise(function (resolve, reject) {
+        if (kinds[name]) {
+            resolve(kinds[name]);
+        } else {
+            kindProvider(name, function gotKindHandler(err, res) {
+                if (err) {
+                    return reject(err);
+                }
+                exports.create(name, res.definition, res.options);
+                resolve(kinds[name]);
+            });
+        }
+    });
+    util.bindPromise(prom, callback);
+    return prom;
 };
 
 exports.getSync = function getKindModelSync(name) {

@@ -32,7 +32,7 @@ exports.writeFile = function (content, filename, options, callback) {
 exports.readFile = function (fileId, options, callback) {
     var gridStore = new GridStore(mongoDB, ObjectID(fileId), 'r', options);
     gridStore.open(function (err) {
-        if(err)
+        if (err)
             return callback(err);
         gridStore.seek(0, function () {
             gridStore.read(callback);
@@ -53,7 +53,7 @@ exports.writeStream = function (stream, options, callback) {
 
 exports.readStream = function (options, callback) {
     var id = options._id ? ObjectID(options._id) : options.name;
-    if(!id) {
+    if (!id) {
         return callback(Error('mongo.readStream: need option _id or name'));
     }
     var gs = new GridStore(mongoDB, id, 'r', {

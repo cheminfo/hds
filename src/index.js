@@ -54,6 +54,15 @@ exports.init = function (options, callback) {
 
 };
 
+exports.customCollection = function (name, schema) {
+    if (!schema instanceof mongoose.Schema) {
+        throw new Error('Provided schema is of invalid type');
+    }
+    return mongoose.model('custom_' + name, schema, 'custom_' + name);
+};
+
+exports.Schema = mongoose.Schema;
+
 exports.Kind = require('./kind');
 
 exports.Entry = require('./entry');
