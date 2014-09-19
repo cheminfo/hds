@@ -216,8 +216,12 @@ function removeEntryChildrenAndAttachments(entry, cb) {
             if (err) {
                 return cb(err);
             }
-            async.map(result._ch, removeEntryChildrenAndAttachments, cb);
-            // TODO remove attachments
+            if(result) {
+                async.map(result._ch, removeEntryChildrenAndAttachments, cb);
+                // TODO remove attachments
+            } else {
+                cb();
+            }
         });
     })
 }
