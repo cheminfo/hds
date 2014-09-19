@@ -40,6 +40,9 @@ exports.insertTree = function (tree, callback) {
 
             });
 
+            // TODO hack mongoose bug !
+            setTimeout(util.noop, 0);
+
         }, reject);
 
     });
