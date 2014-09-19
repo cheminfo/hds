@@ -35,11 +35,7 @@ var baseDefinition = {
 };
 
 var baseOptions = {
-    strict: 'throw',
-    timestamps: {
-        createdAt: '_dc',
-        updatedAt: '_dm'
-    }
+    strict: 'throw'
 };
 
 var kinds = {};
@@ -89,6 +85,21 @@ exports.create = function createKind(name, definition, options) {
             thisSchema.post(hookName.toLowerCase(), options[postHookName]);
         }
     }
+
+    thisSchema.add({
+        _dc: Date,
+        _dm: Date
+    });
+
+    thisSchema.pre('save', function (next) {
+        if (!this._dc){
+            this._dc = this._id.getTimestamp();
+        }
+
+        this._dm = this.isNew ? this._dc : new Date();
+
+        next();
+    });
 
     thisSchema.index({
         'ancestors.kind': 1,
