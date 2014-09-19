@@ -45,8 +45,8 @@ exports.init = function (options, callback) {
             resolve();
         });
     });
-    util.bindPromise(prom, callback);
-    return prom;
+
+    return util.bindPromise(prom, callback);
 
 };
 

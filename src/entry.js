@@ -1,7 +1,6 @@
 'use strict';
 
-var extend = require('extend'),
-    Kind = require('./kind'),
+var Kind = require('./kind'),
     util = require('./util'),
     Promise = require('bluebird');
 
@@ -10,17 +9,7 @@ exports.create = function createEntry(kind, value) {
     return new kindModel(value);
 };
 
-var defaultInsertTree = {
-    removeOnFail: true
-};
-exports.insertTree = function (tree, options, callback) {
-
-    if(typeof options === 'function') {
-        callback = options;
-        options = null;
-    }
-
-    options = extend({}, defaultInsertTree, options);
+exports.insertTree = function (tree, callback) {
 
     var prom = new Promise(function (resolve, reject) {
 
@@ -44,13 +33,9 @@ exports.insertTree = function (tree, options, callback) {
                 appendChildren(rootVal, tree.children).then(function () {
                     resolve(rootVal);
                 }, function (err) {
-                    if(options.removeOnFail) {
-                        rootVal.remove(function () {
-                            reject(err);
-                        });
-                    } else {
+                    rootVal.remove(function () {
                         reject(err);
-                    }
+                    });
                 });
 
             });
