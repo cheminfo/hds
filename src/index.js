@@ -17,7 +17,7 @@ var defaultOptions = {
     }
 };
 
-exports.init = function (options, callback) {
+exports.init = function initHds(options, callback) {
 
     if (typeof options === 'function') {
         callback = options;
@@ -50,7 +50,18 @@ exports.init = function (options, callback) {
 
 };
 
-exports.customCollection = function (name, schema) {
+exports.close = function closeHds(callback) {
+
+    var prom = new Promise(function (resolve) {
+        mongoose.disconnect(function () {
+            resolve();
+        });
+    });
+    return util.bindPromise(prom, callback);
+
+};
+
+exports.customCollection = function customCollection(name, schema) {
     if (!schema instanceof mongoose.Schema) {
         throw new Error('Provided schema is of invalid type');
     }
