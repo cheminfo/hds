@@ -3,7 +3,9 @@
 var extend = require('extend'),
     mongoose = require('mongoose'),
     debug = require('debug')('hds:init'),
-    mongo = require('./mongo');
+    mongo = require('./mongo'),
+    Promise = require('bluebird'),
+    util = require('./util');
 
 var defaultOptions = {
     database: {
@@ -22,10 +24,9 @@ exports.init = function (options, callback) {
         options = null;
     }
 
-    options = extend(true, defaultOptions, options);
+    options = extend(true, {}, defaultOptions, options);
 
-    function initialize(cb) {
-
+    var prom = new Promise(function (resolve, reject) {
         var mongoOptions = {};
         var dbOptions = options.database;
         if (dbOptions.user && dbOptions.password) {
@@ -36,21 +37,16 @@ exports.init = function (options, callback) {
         mongoose.connect(dbOptions.host, dbOptions.name, dbOptions.port, mongoOptions);
 
         var conn = mongoose.connection;
-        conn.on('error', cb);
+        conn.on('error', reject);
 
         conn.once('open', function () {
             debug('mongoDB connection established');
             mongo._setMongo(conn.db);
-            cb(null);
+            resolve();
         });
-
-    }
-
-    if (typeof callback === 'function') {
-        return initialize(callback);
-    } else {
-        return initialize;
-    }
+    });
+    util.bindPromise(prom, callback);
+    return prom;
 
 };
 
