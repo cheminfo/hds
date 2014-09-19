@@ -4,12 +4,32 @@ var Kind = require('./kind'),
     util = require('./util'),
     Promise = require('bluebird');
 
-exports.create = function createEntry(kind, value) {
+exports.create = function createEntry(kind, value, options) {
+
+    if(arguments.length === 2) {
+        options = value;
+        value = null;
+    }
+
+    options = options || {};
+
     var kindModel = Kind.getSync(kind);
-    return new kindModel(value);
+    var entry = new kindModel(value);
+    // TODO handle options
+    if(!options.owner) {
+        throw new Error('cannot create an entry without owner');
+    }
+    entry._ow = options.owner;
+    return entry;
+
 };
 
-exports.insertTree = function (tree, callback) {
+exports.insertTree = function (tree, options, callback) {
+
+    options = options || {};
+    if(!options.owner) {
+        throw new Error('cannot create an entry without owner');
+    }
 
     var prom = new Promise(function (resolve, reject) {
 
@@ -20,6 +40,7 @@ exports.insertTree = function (tree, callback) {
         Kind.get(tree.kind).then(function (kindModel) {
 
             var rootVal = new kindModel(tree.value);
+            rootVal._ow = options.owner;
             rootVal.save(function (err, rootVal) {
 
                 if(err) {
