@@ -27,33 +27,39 @@ var Query = function Query(target, query, options) {
 
 Query.prototype.count = function (callback) {
 
-    this._executionPromise.then(function (result) {
-        callback(null, result.length);
-    }, callback);
+    var self = this;
+    var prom = new Promise(function (resolve, reject) {
+        self._executionPromise.then(function (result) {
+            resolve(result.length);
+        }, reject)
+    });
+    return util.bindPromise(prom, callback);
 
 };
 
 Query.prototype.all = function (callback) {
 
     var self = this;
+    var prom = new Promise(function (resolve, reject) {
+        self._executionPromise.then(function (result) {
 
-    this._executionPromise.then(function (result) {
+            result = result.slice(self._options.skip, self._options.skip + self._options.limit);
 
-        result = result.slice(self._options.skip, self._options.skip + self._options.limit);
+            var query = self._targetModel.find({
+                _id: {
+                    $in: result
+                }
+            });
 
-        var query = self._targetModel.find({
-            _id: {
-                $in: result
+            if(self._options.plain) {
+                query.lean();
             }
-        });
 
-        if(self._options.plain) {
-            query.lean();
-        }
+            query.exec().then(resolve, reject);
 
-        query.exec(callback);
-
-    }, callback);
+        }, reject);
+    });
+    return util.bindPromise(prom, callback);
 
 };
 
