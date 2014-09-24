@@ -103,8 +103,8 @@ exports.create = function createKind(name, definition, options) {
     });
 
     thisSchema.index({
-        'ancestors.kind': 1,
-        'ancestors.id': 1
+        '_an.kind': 1,
+        '_an.id': 1
     });
 
     thisSchema.methods.getKind = thisSchema.statics.getKind = function () {
