@@ -135,7 +135,7 @@ exports.create = function createKind(name, definition, options) {
 
 function createChild(kind, value) {
 
-    if (!this._dc) {
+    if (this.isNew) {
         throw new Error('Cannot call method createChild of an unsaved entry');
     }
 
