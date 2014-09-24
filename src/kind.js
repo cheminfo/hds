@@ -129,7 +129,7 @@ exports.create = function createKind(name, definition, options) {
     thisSchema.pre('save', preSaveChild);
     thisSchema.pre('remove', preRemove);
 
-    kinds[name] = mongoose.model('kind_' + name, thisSchema, 'kind_' + name);
+    return kinds[name] = mongoose.model('kind_' + name, thisSchema, 'kind_' + name);
 
 };
 
