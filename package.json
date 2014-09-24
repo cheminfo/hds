@@ -1,6 +1,6 @@
 {
   "name": "hds",
-  "version": "0.0.8",
+  "version": "0.1.0",
   "description": "Hierarchical data store",
   "main": "index.js",
   "scripts": {
