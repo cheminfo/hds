@@ -11,7 +11,8 @@ var defaultOptions = {
     skip: 0,
     limit: Infinity,
     plain: true,
-    log: false
+    log: false,
+    sort: false
 };
 
 var Query = function Query(target, query, options) {
@@ -75,6 +76,10 @@ Query.prototype.all = function (callback) {
                 $in: result
             }
         });
+
+        if(self._options.sort) {
+            query.sort(self._options.sort);
+        }
 
         if(self._options.plain) {
             query.lean();
