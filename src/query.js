@@ -54,10 +54,8 @@ Query.prototype.count = function (callback) {
     this._exec();
 
     var self = this;
-    var prom = new Promise(function (resolve, reject) {
-        self._executionPromise.then(function (result) {
-                resolve(self._log(result.length));
-        }, reject)
+    var prom = this._executionPromise.then(function (result) {
+        return self._log(result.length);
     });
     return util.bindPromise(prom, callback);
 
@@ -68,26 +66,24 @@ Query.prototype.all = function (callback) {
     this._exec();
 
     var self = this;
-    var prom = new Promise(function (resolve, reject) {
-        self._executionPromise.then(function (result) {
+    var prom = this._executionPromise.then(function (result) {
 
-            result = result.slice(self._options.skip, self._options.skip + self._options.limit);
+        result = result.slice(self._options.skip, self._options.skip + self._options.limit);
 
-            var query = self._targetModel.find({
-                _id: {
-                    $in: result
-                }
-            });
-
-            if(self._options.plain) {
-                query.lean();
+        var query = self._targetModel.find({
+            _id: {
+                $in: result
             }
+        });
 
-            query.exec().then(function(res) {
-                resolve(self._log(res));
-            }, reject);
+        if(self._options.plain) {
+            query.lean();
+        }
 
-        }, reject);
+        return query.exec().then(function(res) {
+            return self._log(res);
+        });
+
     });
     return util.bindPromise(prom, callback);
 
@@ -210,17 +206,15 @@ function doQuery(target, query, logs) {
     }
 
     if (query.target) {
-        prom = new Promise(function (resolve, reject) {
-            handleQuery(query, logs2).then(function (projectionResult) {
-                basicQuery(target, {
-                    kind: query.target,
-                    query: {
-                        _id: {
-                            $in: projectionResult
-                        }
+        prom = handleQuery(query, logs2).then(function (projectionResult) {
+            return basicQuery(target, {
+                kind: query.target,
+                query: {
+                    _id: {
+                        $in: projectionResult
                     }
-                }, true).then(resolve, reject);
-            }, reject);
+                }
+            }, true);
         });
         type = 'complex';
     }
