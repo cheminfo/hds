@@ -10,27 +10,53 @@ var customOperators = {};
 var defaultOptions = {
     skip: 0,
     limit: Infinity,
-    plain: true
+    plain: true,
+    log: false
 };
 
 var Query = function Query(target, query, options) {
 
     this._targetModel = Kind.getSync(target);
     this._options = extend({}, defaultOptions, options);
+    this._logs = [];
 
+    this._executionPromise = null;
+    this._target = target;
+    this._query = query;
+    this._executed = false;
+
+};
+
+Query.prototype._exec = function () {
+    if(this._executed) {
+        return;
+    }
     this._executionPromise = handleQuery({
-        target: target,
-        query: query
-    });
+        target: this._target,
+        query: this._query
+    }, this._logs);
+    this._executed = true;
+};
 
+Query.prototype._log = function (result) {
+    if(this._options.log) {
+        return {
+            result: result,
+            logs: this._logs
+        };
+    } else {
+        return result;
+    }
 };
 
 Query.prototype.count = function (callback) {
 
+    this._exec();
+
     var self = this;
     var prom = new Promise(function (resolve, reject) {
         self._executionPromise.then(function (result) {
-            resolve(result.length);
+                resolve(self._log(result.length));
         }, reject)
     });
     return util.bindPromise(prom, callback);
@@ -38,6 +64,8 @@ Query.prototype.count = function (callback) {
 };
 
 Query.prototype.all = function (callback) {
+
+    this._exec();
 
     var self = this;
     var prom = new Promise(function (resolve, reject) {
@@ -55,7 +83,9 @@ Query.prototype.all = function (callback) {
                 query.lean();
             }
 
-            query.exec().then(resolve, reject);
+            query.exec().then(function(res) {
+                resolve(self._log(res));
+            }, reject);
 
         }, reject);
     });
@@ -78,8 +108,8 @@ Query.createOperator = function(name, method) {
     if(typeof method !== 'function') {
         throw new Error('Provided operator is not a function');
     }
-    if(method.length !== 2) {
-        throw new Error('Operators require two parameters (target and query)');
+    if(method.length < 2) {
+        throw new Error('Operators require at least two parameters (target and query)');
     }
     customOperators[name] = method;
 };
@@ -156,11 +186,11 @@ Query.apply = function(query, model, callback) {
 
  */
 
-function handleQuery(fullQuery) {
-    return doQuery(fullQuery.target, fullQuery.query);
+function handleQuery(fullQuery, logs) {
+    return doQuery(fullQuery.target, fullQuery.query, logs);
 }
 
-function doQuery(target, query) {
+function doQuery(target, query, logs) {
 
     /*
      Query can be one of :
@@ -169,13 +199,19 @@ function doQuery(target, query) {
      - projection (target)
      */
 
+    var prom,
+        type,
+        logs2 = [];
+    var time = Date.now();
+
     if (query.kind) {
-        return basicQuery(target, query);
+        prom = basicQuery(target, query);
+        type = 'basic';
     }
 
     if (query.target) {
-        return new Promise(function (resolve, reject) {
-            handleQuery(query).then(function (projectionResult) {
+        prom = new Promise(function (resolve, reject) {
+            handleQuery(query, logs2).then(function (projectionResult) {
                 basicQuery(target, {
                     kind: query.target,
                     query: {
@@ -186,15 +222,31 @@ function doQuery(target, query) {
                 }, true).then(resolve, reject);
             }, reject);
         });
+        type = 'complex';
     }
 
     // Search for operator
     for(var i in query) {
         if(i[0] === '$' && customOperators[i]) {
-            return customOperators[i](target, query[i]);
+            prom = customOperators[i](target, query[i], logs2);
+            type = i;
         }
     }
 
+
+    if(prom) {
+        return prom.then(function(result) {
+            logs.push({
+                type: type,
+                target: target,
+                query: query,
+                time: Date.now() - time,
+                total: result.length,
+                logs: logs2
+            });
+            return result;
+        });
+    }
     // Unable to process query
     return Promise.reject('Query could not be processed: ', JSON.stringify(query));
 
@@ -249,12 +301,12 @@ function basicQuery(target, query, forceMatch) {
     });
 }
 
-function combineQueryAnd(target, query) {
+function combineQueryAnd(target, query, logs) {
     return new Promise(function (resolve, reject) {
 
         var results = new Array(query.length);
         for (var i = 0; i < query.length; i++) {
-            results[i] = doQuery(target, query[i]);
+            results[i] = doQuery(target, query[i], logs);
         }
 
         Promise.all(results).then(function (results) {
@@ -280,12 +332,12 @@ function combineQueryAnd(target, query) {
     });
 }
 
-function combineQueryOr(target, query) {
+function combineQueryOr(target, query, logs) {
     return new Promise(function (resolve, reject) {
 
         var results = new Array(query.length);
         for (var i = 0; i < query.length; i++) {
-            results[i] = doQuery(target, query[i]);
+            results[i] = doQuery(target, query[i], logs);
         }
 
         Promise.all(results).then(function (results) {
@@ -311,13 +363,13 @@ function combineQueryOr(target, query) {
     });
 }
 
-function combineQueryElseOr(target, query) {
+function combineQueryElseOr(target, query, logs) {
     return new Promise(function (resolve, reject) {
 
         function tryNextQuery() {
             var subQuery = query.shift();
             if (subQuery) {
-                doQuery(target, subQuery).then(function (result) {
+                doQuery(target, subQuery, logs).then(function (result) {
                     if (result.length) {
                         resolve(result);
                     } else {
