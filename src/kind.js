@@ -234,39 +234,90 @@ function removeEntryChildrenAndAttachments(entry, cb) {
     })
 }
 
-function getChildren(kind, callback) {
+var getChildrenOptions = {
+    kind: null,
+    groupKind: false
+};
+function getChildren(options, callback) {
 
-    if (typeof kind === 'function') {
-        callback = kind;
-        kind = null;
+    if (typeof options === 'function') {
+        callback = options;
+        options = null;
     }
+
+    options = extend({}, getChildrenOptions, options);
 
     var ref = {
         kind: this.getKind(),
         id: this._id
     };
 
-    if (kind) { // Search all children of a specific kind
-        exports.get(kind, function (err, kindModel) {
-            if (err) {
-                return callback(err);
-            }
-            kindModel.find({
-                _an: {
-                    $elemMatch: ref
+    var self = this;
+
+    var prom = new Promise(function (resolve, reject) {
+
+        if (options.kind) { // Search all children of a specific kind
+            exports.get(options.kind, function (err, kindModel) {
+                if (err) {
+                    return reject(err);
                 }
-            }, callback);
-        });
-    } else { // Retrieve all first level children of this entry
-        var kindModel = exports.getSync(ref.kind);
-        kindModel.findOne(this._id, function (err, res) {
-            if (err) {
-                return callback(err);
-            }
-            var children = res._ch;
-            async.map(children, getChild, callback);
-        });
-    }
+                kindModel.find({
+                    _an: {
+                        $elemMatch: ref
+                    }
+                }, function (err, res) {
+                    if(err) {
+                        return reject(err);
+                    }
+                    resolve(res);
+                });
+            });
+        } else { // Retrieve all first level children of this entry
+            var kindModel = exports.getSync(ref.kind);
+            kindModel.findOne(self._id, function (err, res) {
+                if (err) {
+                    return reject(err);
+                } else if (!res) {
+                    return reject(new Error('Entry with id '+self._id+' does not exist anymore'));
+                }
+                if (!options.groupKind) { // Put all children in the same array
+                    async.map(res._ch, getChild, function(err, res){
+                        if(err) {
+                            return reject(err);
+                        }
+                        resolve(res);
+                    });
+                } else { // Group by child kind
+                    var children = {};
+                    async.each(res._ch, function (el, cb) {
+                        if(!children[el.kind]) {
+                            children[el.kind] = [];
+                        }
+                        exports.get(el.kind, function (err, kindModel) {
+                            if (err) {
+                                return cb(err);
+                            }
+                            kindModel.findOne(el.id, function (err, child) {
+                                if(err) {
+                                    return cb(err);
+                                }
+                                children[el.kind].push(child);
+                                cb();
+                            });
+                        });
+                    }, function (err) {
+                        if(err) {
+                            return reject(err);
+                        }
+                        resolve(children);
+                    });
+                }
+            });
+        }
+
+    });
+
+    return util.bindPromise(prom, callback);
 
 }
 
