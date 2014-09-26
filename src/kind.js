@@ -204,11 +204,11 @@ function preRemove(next) {
                     if (err) {
                         return next(err);
                     }
-                    async.map(res._ch, removeEntryChildrenAndAttachments, next);
+                    async.each(res._ch, removeEntryChildrenAndAttachments, next);
                 });
             });
         } else {
-            async.map(res._ch, removeEntryChildrenAndAttachments, next);
+            async.each(res._ch, removeEntryChildrenAndAttachments, next);
         }
     });
 
@@ -220,18 +220,41 @@ function removeEntryChildrenAndAttachments(entry, cb) {
         if (err) {
             return cb(err);
         }
+        var childrenRemoved = false,
+            attachmentsRemoved = false;
+        function checkFinish() {
+            if(childrenRemoved && attachmentsRemoved) {
+                cb();
+            }
+        }
         entryModel.findByIdAndRemove(entry.id, function (err, result) {
             if (err) {
                 return cb(err);
             }
             if(result) {
-                async.map(result._ch, removeEntryChildrenAndAttachments, cb);
-                // TODO remove attachments
+                async.each(result._ch, removeEntryChildrenAndAttachments, function(err) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    childrenRemoved = true;
+                    checkFinish();
+                });
+                async.each(result._at, removeEntryAttachment, function (err) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    attachmentsRemoved = true;
+                    checkFinish();
+                });
             } else {
                 cb();
             }
         });
     })
+}
+
+function removeEntryAttachment(att, cb) {
+    mongo.removeFile(att.fileId, 'attachments', cb);
 }
 
 var getChildrenOptions = {
