@@ -68,6 +68,18 @@ exports.customCollection = function customCollection(name, schema) {
     return mongoose.model('custom_' + name, schema, 'custom_' + name);
 };
 
+exports.dropDatabase = function dropDatabase(callback) {
+    var prom = new Promise(function (resolve, reject) {
+        mongoose.connection.db.dropDatabase(function (err) {
+            if (err) {
+                return reject(err);
+            }
+            resolve();
+        })
+    });
+    return util.bindPromise(prom, callback);
+};
+
 exports.Schema = mongoose.Schema;
 
 exports.Kind = require('./kind');
