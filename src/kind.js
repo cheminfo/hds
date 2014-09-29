@@ -93,7 +93,7 @@ exports.create = function createKind(name, definition, options) {
     });
 
     thisSchema.pre('save', function (next) {
-        if (!this._dc){
+        if (!this._dc) {
             this._dc = this._id.getTimestamp();
         }
 
@@ -136,18 +136,21 @@ exports.create = function createKind(name, definition, options) {
 function createChild(kind, value) {
 
     if (this.isNew) {
-        throw new Error('Cannot call method createChild of an unsaved entry');
+        throw new Error('Cannot call method createChild of a new unsaved entry');
     }
 
     var kindModel = exports.getSync(kind);
     var child = new kindModel(value);
     child._ow = this._ow;                           // By default, owner is propagated
     for (var i = 0; i < this._an.length; i++) {
-        child._an.push(this._an[i]);
+        child._an.push({
+            kind: this._an[i].kind,
+            id: this._an[i].id
+        });
     }
     child._an.push({
-        id: this._id,
-        kind: this.getKind()
+        kind: this.getKind(),
+        id: this._id
     });
     child._newChild = true;
     child._parent = this;
@@ -181,8 +184,8 @@ function preSaveChild(next) {
 
 function preRemove(next) {
     var ref = {
-        id: this._id,
-        kind: this.getKind()
+        kind: this.getKind(),
+        id: this._id
     };
 
     exports.getSync(ref.kind).findById(ref.id, function (err, res) {
@@ -222,17 +225,19 @@ function removeEntryChildrenAndAttachments(entry, cb) {
         }
         var childrenRemoved = false,
             attachmentsRemoved = false;
+
         function checkFinish() {
-            if(childrenRemoved && attachmentsRemoved) {
+            if (childrenRemoved && attachmentsRemoved) {
                 cb();
             }
         }
+
         entryModel.findByIdAndRemove(entry.id, function (err, result) {
             if (err) {
                 return cb(err);
             }
-            if(result) {
-                async.each(result._ch, removeEntryChildrenAndAttachments, function(err) {
+            if (result) {
+                async.each(result._ch, removeEntryChildrenAndAttachments, function (err) {
                     if (err) {
                         return cb(err);
                     }
@@ -289,7 +294,7 @@ function getChildren(options, callback) {
                         $elemMatch: ref
                     }
                 }, function (err, res) {
-                    if(err) {
+                    if (err) {
                         return reject(err);
                     }
                     resolve(res);
@@ -301,11 +306,11 @@ function getChildren(options, callback) {
                 if (err) {
                     return reject(err);
                 } else if (!res) {
-                    return reject(new Error('Entry with id '+self._id+' does not exist anymore'));
+                    return reject(new Error('Entry with id ' + self._id + ' does not exist anymore'));
                 }
                 if (!options.groupKind) { // Put all children in the same array
-                    async.map(res._ch, getChild, function(err, res){
-                        if(err) {
+                    async.map(res._ch, getChild, function (err, res) {
+                        if (err) {
                             return reject(err);
                         }
                         resolve(res);
@@ -313,7 +318,7 @@ function getChildren(options, callback) {
                 } else { // Group by child kind
                     var children = {};
                     async.each(res._ch, function (el, cb) {
-                        if(!children[el.kind]) {
+                        if (!children[el.kind]) {
                             children[el.kind] = [];
                         }
                         exports.get(el.kind, function (err, kindModel) {
@@ -321,7 +326,7 @@ function getChildren(options, callback) {
                                 return cb(err);
                             }
                             kindModel.findOne(el.id, function (err, child) {
-                                if(err) {
+                                if (err) {
                                     return cb(err);
                                 }
                                 children[el.kind].push(child);
@@ -329,7 +334,7 @@ function getChildren(options, callback) {
                             });
                         });
                     }, function (err) {
-                        if(err) {
+                        if (err) {
                             return reject(err);
                         }
                         resolve(children);
