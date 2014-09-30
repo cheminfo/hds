@@ -1,6 +1,7 @@
 var mongoose = require('mongoose'),
     util = require('./util'),
-    validator = require('validator');
+    validator = require('validator'),
+    async = require('async');
 
 var Rights = {
     READ: 1,
@@ -70,6 +71,9 @@ var Right = mongoose.model('Right', rightSchema, 'rights');
 exports.addRight = function addRight(group, target, user, right, callback) {
     var prom = new Promise(function (resolve, reject) {
         function addRights() {
+            if(!(right instanceof Array)) {
+                right = [right];
+            }
             Right.findOne({
                 group: group,
                 target: target
@@ -82,7 +86,9 @@ exports.addRight = function addRight(group, target, user, right, callback) {
                         target: target
                     });
                 }
-                res.addRight(right);
+                for(var i = 0; i < right.length; i++) {
+                    res.addRight(right[i]);
+                }
                 res.save(function (err) {
                     if (err) {
                         return reject(err);
@@ -150,50 +156,119 @@ exports.create = function createGroup(name, user, callback) {
     return util.bindPromise(prom, callback);
 };
 
+//  http://en.wikipedia.org/wiki/Breadth-first_search
 exports.getRights = function (group, callback) {
     var prom = new Promise(function (resolve, reject) {
 
-        var known = {};
-        var rights = {};
+        var visited = {},
+            rights = {};
+        rights[group] = {
+            _: 0xFFFFFFFF
+        };
 
-        Group.find({
-            child: group
-        }, function (err, groups) {
+        BFS(group, visited, rights, function (err, res){
             if (err) {
                 return reject(err);
-            } else if (groups.length) {
-                BFS(groups, known, rights, function (err) {
-                    if (err) {
-                        return reject(err);
-                    }
-                    resolve(rights);
-                });
-            } else {
-                resolve(rights);
             }
+            resolve(new RightObject(group, res));
         });
 
     });
     return util.bindPromise(prom, callback);
 };
 
-//  http://en.wikipedia.org/wiki/Breadth-first_search
-function BFS(groups, known, rights, callback) {
-    async.each(groups, function (group, callback) {
-        if(known[group.child]) {
-            callback();
+function BFS(name, visited, rights, callback) {
+    if(visited[name]) {
+        return callback(null, rights);
+    }
+    visited[name] = true;
+    Right.find({
+        target: name
+    }, function (err, res) {
+        if(err) {
+            callback(err);
+        } else if (!res.length) {
+            callback(null, rights);
         } else {
-            rights[group.parent] |= group.right;
-            known[group.child] = true;
-            Group.find({
-                child: group.parent
-            }, function (err, groups) {
-                if (err) {
+            async.each(res, function (group, cb) {
+                var groupName = group.group,
+                    right, kind;
+                console.log('Current rights: ', rights);
+                console.log('Parent:          '+name+', group: '+groupName);
+                console.log('Rights to add:  ', group.rights);
+                console.log('');
+                if(!rights[groupName]) {
+                    rights[groupName] = {};
+                }
+                for (var i = 0, ii = group.rights.length; i < ii; i++) {
+                    right = group.rights[i];
+                    kind = right.kind ? right.kind : '_';
+
+
+
+
+
+                    if(!rights[groupName][kind]) {
+                        if(rights[name][kind]) {
+                            rights[groupName][kind] = rights[name][kind];
+                        }
+                    }
+
+
+
+                    if(!rights[groupName][kind] || !rights[groupName]['_']) {
+                        if(rights[name].hasOwnProperty(kind)) {
+                            rights[groupName][kind] = rights[name][kind];
+                        } else if(rights[name].hasOwnProperty('_')) {
+                            rights[groupName][kind] = rights[name]['_'];
+                        } else {
+                            rights[groupName][kind] = 0xFFFFFFFF;
+                        }
+                    }
+                    rights[groupName][kind] &= right.right;
+                }
+                BFS(group.group, visited, rights, cb);
+            }, function (err){
+                if(err) {
                     callback(err);
                 } else {
-                    BFS(groups, known, rights, callback);
+                    callback(null, rights);
                 }
             });
         }
-    }, callback);
+    });
+}
+
+function RightObject(group, rights) {
+
+    this._group = group;
+    this._rights = rights;
+
+}
+
+RightObject.prototype.toJSON = function () {
+    var toReturn = {
+        group: this._group,
+        rights: {}
+    };
+
+    for(var i in this._rights) {
+        toReturn.rights[i] = {};
+        for(var j in this._rights[i]) {
+            toReturn.rights[i][j] = getRights(this._rights[i][j]);
+        }
+    }
+
+    return toReturn;
+};
+
+function getRights(number) {
+    return {
+        read: (number & Rights.READ) !== 0,
+        write: (number & Rights.WRITE) !== 0,
+        attach: (number & Rights.ATTACH) !== 0,
+        child: (number & Rights.CHILD) !== 0,
+        manager: (number & Rights.MANAGER) !== 0,
+        admin : (number & Rights.ADMIN) !== 0
+    }
 }
