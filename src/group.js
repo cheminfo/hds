@@ -26,8 +26,8 @@ var singleRightSchema = new mongoose.Schema({
 });
 
 var rightSchema = new mongoose.Schema({
-    parent: String,
-    child: String,
+    group: String,
+    target: String,
     rights: [singleRightSchema]
 });
 
@@ -67,43 +67,50 @@ rightSchema.methods.addRight = function (right) {
 
 var Right = mongoose.model('Right', rightSchema, 'rights');
 
-exports.addRight = function addRight(target, group, user, right, callback) {
+exports.addRight = function addRight(group, target, user, right, callback) {
     var prom = new Promise(function (resolve, reject) {
-        Right.findOne({
-            parent: group,
-            child: user
-        }, function (err, res) {
-            if (err) {
-                reject(err);
-            } else if (res) {
-                if(res.hasRight(Rights.ADMIN_OR_MANAGER)) {
-                    Right.findOne({
-                        parent: group,
-                        child: target
-                    }, function (err, res) {
-                        if (err) {
-                            return reject(err);
-                        } else if (!res) {
-                            res = new Right({
-                                parent: group,
-                                child: target
-                            });
-                        }
-                        res.addRight(right);
-                        res.save(function (err) {
-                            if (err) {
-                                return reject(err);
-                            }
-                            resolve();
-                        });
+        function addRights() {
+            Right.findOne({
+                group: group,
+                target: target
+            }, function (err, res) {
+                if (err) {
+                    return reject(err);
+                } else if (!res) {
+                    res = new Right({
+                        group: group,
+                        target: target
                     });
-                } else {
-                    reject(new Error('user "'+ user + '" has not enough rights on group "'+ group +'"'));
                 }
-            } else {
-                reject(new Error('No group found with name "' + group + '" and user "' + user + '"'));
-            }
-        });
+                res.addRight(right);
+                res.save(function (err) {
+                    if (err) {
+                        return reject(err);
+                    }
+                    resolve();
+                });
+            });
+        }
+        if(group === user) { // User can add any right to his own data
+            addRights();
+        } else { // Verify that user is allowed to edit the target group
+            Right.findOne({
+                group: group,
+                target: user
+            }, function (err, res) {
+                if (err) {
+                    reject(err);
+                } else if (res) {
+                    if(res.hasRight(Rights.ADMIN_OR_MANAGER)) {
+                        addRights();
+                    } else {
+                        reject(new Error('user "'+ user + '" has not enough rights on group "'+ group +'"'));
+                    }
+                } else {
+                    reject(new Error('No group found with name "' + group + '" and user "' + user + '"'));
+                }
+            });
+        }
     });
     return util.bindPromise(prom, callback);
 };
@@ -118,7 +125,7 @@ exports.create = function createGroup(name, user, callback) {
         }
 
         Right.findOne({
-            parent: name
+            group: name
         }, function (err, res) {
             if (err) {
                 reject(err);
@@ -126,8 +133,8 @@ exports.create = function createGroup(name, user, callback) {
                 reject(new Error('The group "'+name+'" already exists'));
             } else {
                 var newRight = new Right({
-                    parent: name,
-                    child: user,
+                    group: name,
+                    target: user,
                     rights: [ { right: Rights.ADMIN } ]
                 });
                 newRight.save(function(err) {
