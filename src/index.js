@@ -87,3 +87,5 @@ exports.Kind = require('./kind');
 exports.Entry = require('./entry');
 
 exports.Query = require('./query');
+
+exports.Group = require('./group');
