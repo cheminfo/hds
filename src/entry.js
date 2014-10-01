@@ -23,7 +23,7 @@ exports.create = function createEntry(kind, value, options) {
     if (!options.owner) {
         throw new Error('cannot create an entry without owner');
     }
-    entry._ow = options.owner;
+    entry._gr = [options.owner];
     return entry;
 
 };
@@ -79,7 +79,7 @@ exports.batch = function (data, options, callback) {
                     var query = {
                         $and: [
                             extend({}, data.query, {
-                                _ow: options.owner
+                                '_gr.0': options.owner
                             })
                         ]
                     };
@@ -100,7 +100,7 @@ exports.batch = function (data, options, callback) {
                     function createNewEntry(value, callback) {
                         var objData, obj;
                         if(value) {
-                            objData = extend({}, value, { _ow: data.owner });
+                            objData = extend({}, value, { '_gr.0': data.owner });
                             obj = parent ? parent.createChild(data.kind, objData) : new KindModel(objData);
                             obj.save(function (err, entry) {
                                 if (err) {
@@ -114,7 +114,7 @@ exports.batch = function (data, options, callback) {
                                 }
                             });
                         } else {
-                            objData = extend({}, data.query, data.value, { _ow: data.owner });
+                            objData = extend({}, data.query, data.value, { '_gr.0': data.owner });
                             obj = parent ? parent.createChild(data.kind, objData) : new KindModel(objData);
                             obj.save(function (err, entry) {
                                 if (err) {
@@ -254,7 +254,7 @@ function _batch(data, parent) {
             var query = {
                 $and: [
                     { _an: { $elemMatch: parentQuery } },
-                    { _ow: parent.owner, _an: ancestors }
+                    { '_gr.0': parent.owner, _an: ancestors }
                 ]
             };
             if(data.query) {
@@ -368,7 +368,7 @@ exports.insertTree = function (tree, options, callback) {
         Kind.get(tree.kind).then(function (kindModel) {
 
             var rootVal = new kindModel(tree.value);
-            rootVal._ow = options.owner;
+            rootVal.owner = options.owner;
             rootVal.save(function (err, rootVal) {
 
                 if (err) {

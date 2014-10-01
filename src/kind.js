@@ -32,7 +32,7 @@ var baseDefinition = {
     _at: [attachmentSchema],    // Attachments array
     _dc: Date,                  // Date of creation
     _dm: Date,                  // Date of modification
-    _ow: String                 // Owner (email)
+    _gr: [String]               // Groups
 };
 
 var baseOptions = {
@@ -112,9 +112,9 @@ exports.create = function createKind(name, definition, options) {
     };
 
     thisSchema.virtual('owner').set(function (v) {
-        this._ow = v; // TODO check
+        this._gr[0] = v; // TODO check
     }).get(function () {
-        return this._ow;
+        return this._gr[0];
     });
 
     thisSchema.methods.createChild = createChild;
@@ -141,7 +141,7 @@ function createChild(kind, value) {
 
     var kindModel = exports.getSync(kind);
     var child = new kindModel(value);
-    child._ow = this._ow;                           // By default, owner is propagated
+    child._gr = this._gr.slice();                           // By default, owner is propagated
     for (var i = 0; i < this._an.length; i++) {
         child._an.push({
             kind: this._an[i].kind,
