@@ -192,40 +192,54 @@ function BFS(name, visited, rights, callback) {
         } else {
             async.each(res, function (group, cb) {
                 var groupName = group.group,
-                    right, kind;
-                console.log('Current rights: ', rights);
-                console.log('Parent:          '+name+', group: '+groupName);
-                console.log('Rights to add:  ', group.rights);
-                console.log('');
+                    right, kind, i, ii;
+
+//                console.log('');
+//                console.log('Current rights: ', rights);
+//                console.log('Parent:          '+name+', group: '+groupName);
+//                console.log('Rights to add:  ', group.rights);
+
                 if(!rights[groupName]) {
                     rights[groupName] = {};
                 }
-                for (var i = 0, ii = group.rights.length; i < ii; i++) {
+
+                var rightsGroup = rights[groupName],
+                    rightsParent = rights[name];
+
+                var existent = {},
+                    wildcard = false;
+                for (i in rightsGroup) {
+                    if(i === '_') {
+                        wildcard = rightsGroup[i] | rightsParent[i];
+                    } else {
+                        existent[i] = rightsGroup[i] | rightsParent[i];
+                    }
+                }
+                for(i in rightsParent) {
+                    if(i === '_') {
+                        wildcard = rightsGroup[i] | rightsParent[i];
+                    } else {
+                        existent[i] = rightsGroup[i] | rightsParent[i];
+                    }
+                }
+                var wildcard2;
+                for (i = 0, ii = group.rights.length; i < ii; i++) {
                     right = group.rights[i];
-                    kind = right.kind ? right.kind : '_';
+                    kind = right.kind;
 
-
-
-
-
-                    if(!rights[groupName][kind]) {
-                        if(rights[name][kind]) {
-                            rights[groupName][kind] = rights[name][kind];
-                        }
+                    if (!kind) {
+                        wildcard2 = right.right;
+                    } else if(existent[kind]) {
+                        rightsGroup[kind] = existent[kind] & right.right;
+                        delete existent[kind];
+                    } else if(wildcard) {
+                        rightsGroup[kind] = wildcard & right.right;
                     }
-
-
-
-                    if(!rights[groupName][kind] || !rights[groupName]['_']) {
-                        if(rights[name].hasOwnProperty(kind)) {
-                            rights[groupName][kind] = rights[name][kind];
-                        } else if(rights[name].hasOwnProperty('_')) {
-                            rights[groupName][kind] = rights[name]['_'];
-                        } else {
-                            rights[groupName][kind] = 0xFFFFFFFF;
-                        }
+                }
+                if (wildcard2) {
+                    for (i in existent) {
+                        rightsGroup[i] = existent[i] & wildcard2;
                     }
-                    rights[groupName][kind] &= right.right;
                 }
                 BFS(group.group, visited, rights, cb);
             }, function (err){
@@ -260,6 +274,33 @@ RightObject.prototype.toJSON = function () {
     }
 
     return toReturn;
+};
+
+RightObject.prototype.hasRight = function (right, group, kind) {
+    if (this._rights[group]) {
+        if (this._rights[group].hasOwnProperty(kind)) {
+            return (this._rights[group][kind] & right) !== 0;
+        } else if(this._rights[group].hasOwnProperty('_')) {
+            return (this._rights[group]['_'] & right) !== 0;
+        }
+    }
+    return false;
+};
+
+RightObject.prototype.getGroups = function (right, kind) {
+    var result = [];
+    for(var i in this._rights) {
+        if(this._rights[i].hasOwnProperty(kind)) {
+            if((this._rights[i][kind] & right) !== 0) {
+                result.push(i);
+            }
+        } else if (this._rights[i].hasOwnProperty('_')) {
+            if((this._rights[i]['_'] & right) !== 0) {
+                result.push(i);
+            }
+        }
+    }
+    return result;
 };
 
 function getRights(number) {
