@@ -29,7 +29,7 @@ var Query = function Query(target, query, options) {
 };
 
 Query.prototype._exec = function () {
-    if(this._executed) {
+    if (this._executed) {
         return;
     }
     this._executionPromise = handleQuery({
@@ -40,7 +40,7 @@ Query.prototype._exec = function () {
 };
 
 Query.prototype._log = function (result) {
-    if(this._options.log) {
+    if (this._options.log) {
         return {
             result: result,
             logs: this._logs
@@ -77,15 +77,15 @@ Query.prototype.all = function (callback) {
             }
         });
 
-        if(self._options.sort) {
+        if (self._options.sort) {
             query.sort(self._options.sort);
         }
 
-        if(self._options.plain) {
+        if (self._options.plain) {
             query.lean();
         }
 
-        return query.exec().then(function(res) {
+        return query.exec().then(function (res) {
             return self._log(res);
         });
 
@@ -94,38 +94,38 @@ Query.prototype.all = function (callback) {
 
 };
 
-Query.prototype.exec = function(callback) {
+Query.prototype.exec = function (callback) {
     throw new Error('Unimplemented exec');
     // TODO iterator version
 };
 
-Query.createOperator = function(name, method) {
-    if(name[0] !== '$') {
-        name = '$'+name;
+Query.createOperator = function (name, method) {
+    if (name[0] !== '$') {
+        name = '$' + name;
     }
-    if(customOperators[name]) {
-        throw new Error('There is already an operator with name '+name);
+    if (customOperators[name]) {
+        throw new Error('There is already an operator with name ' + name);
     }
-    if(typeof method !== 'function') {
+    if (typeof method !== 'function') {
         throw new Error('Provided operator is not a function');
     }
-    if(method.length < 2) {
+    if (method.length < 2) {
         throw new Error('Operators require at least two parameters (target and query)');
     }
     customOperators[name] = method;
 };
 
-Query.apply = function(query, model, callback) {
+Query.apply = function (query, model, callback) {
     var mainPromise = new Promise(function (resolve, reject) {
 
         var prom;
-        if(typeof model === 'string') {
+        if (typeof model === 'string') {
             prom = Kind.get(model);
         } else {
             prom = Promise.resolve(model);
         }
 
-        prom.then(function(kindModel) {
+        prom.then(function (kindModel) {
 
             kindModel.aggregate([
                 {
@@ -225,16 +225,16 @@ function doQuery(target, query, logs) {
     }
 
     // Search for operator
-    for(var i in query) {
-        if(i[0] === '$' && customOperators[i]) {
+    for (var i in query) {
+        if (i[0] === '$' && customOperators[i]) {
             prom = customOperators[i](target, query[i], logs2);
             type = i;
         }
     }
 
 
-    if(prom) {
-        return prom.then(function(result) {
+    if (prom) {
+        return prom.then(function (result) {
             logs.push({
                 type: type,
                 target: target,
@@ -385,7 +385,9 @@ function combineQueryElseOr(target, query, logs) {
     });
 }
 
-function projectQuery(target, query){throw new Error('Unimplemented project entry')} // TODO handle project query
+function projectQuery(target, query) {
+    throw new Error('Unimplemented project entry')
+} // TODO handle project query
 
 function extractId(val) {
     return val._id;

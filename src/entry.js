@@ -30,17 +30,17 @@ exports.create = function createEntry(kind, value, options) {
 
 // Insert, update and/or delete multiple entries with a single instruction
 /*
-Supported actions:
-- insert (default) : search entries with query. If no entry found create a new one, if one entry found modify its value, if more than one entry found error, then treat children
-- delete : remove all entries that match query then stop
-- add : insert new entry without searching, then treat children
-- replace : remove all entries that match query, then create entry with value, then treat children
+ Supported actions:
+ - insert (default) : search entries with query. If no entry found create a new one, if one entry found modify its value, if more than one entry found error, then treat children
+ - delete : remove all entries that match query then stop
+ - add : insert new entry without searching, then treat children
+ - replace : remove all entries that match query, then create entry with value, then treat children
  */
 exports.batch = function (data, options, callback) {
 
     var prom;
-    if(data instanceof Array) {
-        prom = Promise.all(data.map(function(dataVal) {
+    if (data instanceof Array) {
+        prom = Promise.all(data.map(function (dataVal) {
             return exports.batch(dataVal, options);
         }));
     } else {
@@ -99,14 +99,14 @@ exports.batch = function (data, options, callback) {
 
                     function createNewEntry(value, callback) {
                         var objData, obj;
-                        if(value) {
+                        if (value) {
                             objData = extend({}, value, { '_gr.0': data.owner });
                             obj = parent ? parent.createChild(data.kind, objData) : new KindModel(objData);
                             obj.save(function (err, entry) {
                                 if (err) {
                                     callback(err);
                                 } else {
-                                    if(value.attachments) {
+                                    if (value.attachments) {
                                         async.each(value.attachments, addAttachment(entry), callback);
                                     } else {
                                         callback();
@@ -122,7 +122,7 @@ exports.batch = function (data, options, callback) {
                                 } else {
                                     if (data.attachments) {
                                         async.each(data.attachments, addAttachment(entry), function (err) {
-                                            if(err) {
+                                            if (err) {
                                                 nextCallback(err);
                                             } else {
                                                 nextCallback(null, entry);
@@ -140,7 +140,9 @@ exports.batch = function (data, options, callback) {
                         if (err) {
                             return reject(err);
                         }
-                        var values = data.values || [ { value: data.value, attachments: data.attachments } ];
+                        var values = data.values || [
+                            { value: data.value, attachments: data.attachments }
+                        ];
                         async.each(values, createNewEntry, finalCallback);
                     }
 
@@ -156,8 +158,8 @@ exports.batch = function (data, options, callback) {
                                 } else if (action === 'replace') {
                                     async.each(res, removeEntry, addNewEntries);
                                 } else if (action === 'insert') {
-                                    if(res.length > 1) {
-                                        reject(new Error('Query lacks specificity. '+res.length+' matching documents found'));
+                                    if (res.length > 1) {
+                                        reject(new Error('Query lacks specificity. ' + res.length + ' matching documents found'));
                                     } else {
                                         res = res[0];
                                         for (var i in data.value) {
@@ -221,8 +223,8 @@ function getNextCallback(resolve, reject, data) {
             return reject(err);
         }
         // TODO attachments
-        if(data.children) {
-            var promises = data.children.map(function(child) {
+        if (data.children) {
+            var promises = data.children.map(function (child) {
                 return _batch(child, entry);
             });
             Promise.all(promises).then(resolve, reject);
@@ -257,7 +259,7 @@ function _batch(data, parent) {
                     { '_gr.0': parent.owner, _an: ancestors }
                 ]
             };
-            if(data.query) {
+            if (data.query) {
                 query.$and.push(extend({}, data.query))
             }
 
@@ -266,13 +268,13 @@ function _batch(data, parent) {
 
             function createNewEntry(value, callback) {
                 var obj;
-                if(value) {
+                if (value) {
                     obj = parent.createChild(data.kind, extend({}, value));
                     obj.save(function (err, entry) {
                         if (err) {
                             callback(err);
                         } else {
-                            if(value.attachments) {
+                            if (value.attachments) {
                                 async.each(value.attachments, addAttachment(entry), callback);
                             } else {
                                 callback();
@@ -287,7 +289,7 @@ function _batch(data, parent) {
                         } else {
                             if (data.attachments) {
                                 async.each(data.attachments, addAttachment(entry), function (err) {
-                                    if(err) {
+                                    if (err) {
                                         nextCallback(err);
                                     } else {
                                         nextCallback(null, entry);
@@ -305,7 +307,9 @@ function _batch(data, parent) {
                 if (err) {
                     return reject(err);
                 }
-                var values = data.values || [ { value: data.value, attachments: data.attachments } ];
+                var values = data.values || [
+                    { value: data.value, attachments: data.attachments }
+                ];
                 async.each(values, createNewEntry, finalCallback);
             }
 
@@ -322,7 +326,7 @@ function _batch(data, parent) {
                             async.each(res, removeEntry, addNewEntries);
                         } else if (action === 'insert') {
                             if (res.length > 1) {
-                                reject(new Error('Query lacks specificity. '+res.length+' matching documents found'));
+                                reject(new Error('Query lacks specificity. ' + res.length + ' matching documents found'));
                             } else {
                                 res = res[0];
                                 for (var i in data.value) {

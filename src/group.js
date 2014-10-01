@@ -34,7 +34,7 @@ var rightSchema = new mongoose.Schema({
 
 rightSchema.methods.hasRight = function (right, kind) {
     var thisRight;
-    for(var i = 0, ii = this.rights.length; i < ii; i++) {
+    for (var i = 0, ii = this.rights.length; i < ii; i++) {
         thisRight = this.rights[i];
         if (((thisRight.right & right) !== 0) && (thisRight.kind === kind)) {
             return true;
@@ -46,15 +46,15 @@ rightSchema.methods.hasRight = function (right, kind) {
 rightSchema.methods.addRight = function (right) {
     var kind = right.kind,
         thisRight;
-    for(var i = 0, ii = this.rights.length; i < ii; i++) {
-        if(this.rights[i].kind === kind) {
+    for (var i = 0, ii = this.rights.length; i < ii; i++) {
+        if (this.rights[i].kind === kind) {
             thisRight = this.rights[i];
             break;
         }
     }
-    if(!thisRight) {
+    if (!thisRight) {
         thisRight = this.rights.create();
-        if(kind) {
+        if (kind) {
             thisRight.kind = kind;
         }
         this.rights.push(thisRight);
@@ -71,7 +71,7 @@ var Right = mongoose.model('Right', rightSchema, 'rights');
 exports.addRight = function addRight(group, target, user, right, callback) {
     var prom = new Promise(function (resolve, reject) {
         function addRights() {
-            if(!(right instanceof Array)) {
+            if (!(right instanceof Array)) {
                 right = [right];
             }
             Right.findOne({
@@ -86,7 +86,7 @@ exports.addRight = function addRight(group, target, user, right, callback) {
                         target: target
                     });
                 }
-                for(var i = 0; i < right.length; i++) {
+                for (var i = 0; i < right.length; i++) {
                     res.addRight(right[i]);
                 }
                 res.save(function (err) {
@@ -97,7 +97,8 @@ exports.addRight = function addRight(group, target, user, right, callback) {
                 });
             });
         }
-        if(group === user) { // User can add any right to his own data
+
+        if (group === user) { // User can add any right to his own data
             addRights();
         } else { // Verify that user is allowed to edit the target group
             Right.findOne({
@@ -107,10 +108,10 @@ exports.addRight = function addRight(group, target, user, right, callback) {
                 if (err) {
                     reject(err);
                 } else if (res) {
-                    if(res.hasRight(Rights.ADMIN_OR_MANAGER)) {
+                    if (res.hasRight(Rights.ADMIN_OR_MANAGER)) {
                         addRights();
                     } else {
-                        reject(new Error('user "'+ user + '" has not enough rights on group "'+ group +'"'));
+                        reject(new Error('user "' + user + '" has not enough rights on group "' + group + '"'));
                     }
                 } else {
                     reject(new Error('No group found with name "' + group + '" and user "' + user + '"'));
@@ -136,14 +137,16 @@ exports.create = function createGroup(name, user, callback) {
             if (err) {
                 reject(err);
             } else if (res) {
-                reject(new Error('The group "'+name+'" already exists'));
+                reject(new Error('The group "' + name + '" already exists'));
             } else {
                 var newRight = new Right({
                     group: name,
                     target: user,
-                    rights: [ { right: Rights.ADMIN } ]
+                    rights: [
+                        { right: Rights.ADMIN }
+                    ]
                 });
-                newRight.save(function(err) {
+                newRight.save(function (err) {
                     if (err) {
                         return reject(err);
                     }
@@ -166,7 +169,7 @@ exports.getRights = function (group, callback) {
             _: 0xFFFFFFFF
         };
 
-        BFS(group, visited, rights, function (err, res){
+        BFS(group, visited, rights, function (err, res) {
             if (err) {
                 return reject(err);
             }
@@ -178,14 +181,14 @@ exports.getRights = function (group, callback) {
 };
 
 function BFS(name, visited, rights, callback) {
-    if(visited[name]) {
+    if (visited[name]) {
         return callback(null, rights);
     }
     visited[name] = true;
     Right.find({
         target: name
     }, function (err, res) {
-        if(err) {
+        if (err) {
             callback(err);
         } else if (!res.length) {
             callback(null, rights);
@@ -199,7 +202,7 @@ function BFS(name, visited, rights, callback) {
 //                console.log('Parent:          '+name+', group: '+groupName);
 //                console.log('Rights to add:  ', group.rights);
 
-                if(!rights[groupName]) {
+                if (!rights[groupName]) {
                     rights[groupName] = {};
                 }
 
@@ -209,14 +212,14 @@ function BFS(name, visited, rights, callback) {
                 var existent = {},
                     wildcard = false;
                 for (i in rightsGroup) {
-                    if(i === '_') {
+                    if (i === '_') {
                         wildcard = rightsGroup[i] | rightsParent[i];
                     } else {
                         existent[i] = rightsGroup[i] | rightsParent[i];
                     }
                 }
-                for(i in rightsParent) {
-                    if(i === '_') {
+                for (i in rightsParent) {
+                    if (i === '_') {
                         wildcard = rightsGroup[i] | rightsParent[i];
                     } else {
                         existent[i] = rightsGroup[i] | rightsParent[i];
@@ -229,10 +232,10 @@ function BFS(name, visited, rights, callback) {
 
                     if (!kind) {
                         wildcard2 = right.right;
-                    } else if(existent[kind]) {
+                    } else if (existent[kind]) {
                         rightsGroup[kind] = existent[kind] & right.right;
                         delete existent[kind];
-                    } else if(wildcard) {
+                    } else if (wildcard) {
                         rightsGroup[kind] = wildcard & right.right;
                     }
                 }
@@ -242,8 +245,8 @@ function BFS(name, visited, rights, callback) {
                     }
                 }
                 BFS(group.group, visited, rights, cb);
-            }, function (err){
-                if(err) {
+            }, function (err) {
+                if (err) {
                     callback(err);
                 } else {
                     callback(null, rights);
@@ -263,9 +266,9 @@ RightObject.prototype.toJSON = function () {
         group: this._group,
         rights: {}
     };
-    for(var i in this._rights) {
+    for (var i in this._rights) {
         toReturn.rights[i] = {};
-        for(var j in this._rights[i]) {
+        for (var j in this._rights[i]) {
             toReturn.rights[i][j] = getRights(this._rights[i][j]);
         }
     }
@@ -275,7 +278,7 @@ RightObject.prototype.toJSON = function () {
 RightObject.prototype.getRights = function (group) {
     var toReturn = {};
     if (this._rights[group]) {
-        for(var i in this._rights[group]) {
+        for (var i in this._rights[group]) {
             toReturn[i] = getRights(this._rights[group][i]);
         }
     }
@@ -286,7 +289,7 @@ RightObject.prototype.hasRight = function (right, group, kind) {
     if (this._rights[group]) {
         if (this._rights[group].hasOwnProperty(kind)) {
             return (this._rights[group][kind] & right) !== 0;
-        } else if(this._rights[group].hasOwnProperty('_')) {
+        } else if (this._rights[group].hasOwnProperty('_')) {
             return (this._rights[group]['_'] & right) !== 0;
         }
     }
@@ -295,13 +298,13 @@ RightObject.prototype.hasRight = function (right, group, kind) {
 
 RightObject.prototype.getGroups = function (right, kind) {
     var result = [];
-    for(var i in this._rights) {
-        if(this._rights[i].hasOwnProperty(kind)) {
-            if((this._rights[i][kind] & right) !== 0) {
+    for (var i in this._rights) {
+        if (this._rights[i].hasOwnProperty(kind)) {
+            if ((this._rights[i][kind] & right) !== 0) {
                 result.push(i);
             }
         } else if (this._rights[i].hasOwnProperty('_')) {
-            if((this._rights[i]['_'] & right) !== 0) {
+            if ((this._rights[i]['_'] & right) !== 0) {
                 result.push(i);
             }
         }
@@ -316,6 +319,6 @@ function getRights(number) {
         attach: (number & Rights.ATTACH) !== 0,
         child: (number & Rights.CHILD) !== 0,
         manager: (number & Rights.MANAGER) !== 0,
-        admin : (number & Rights.ADMIN) !== 0
+        admin: (number & Rights.ADMIN) !== 0
     }
 }
