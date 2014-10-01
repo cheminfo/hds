@@ -87,11 +87,6 @@ exports.create = function createKind(name, definition, options) {
         }
     }
 
-    thisSchema.add({
-        _dc: Date,
-        _dm: Date
-    });
-
     thisSchema.pre('save', function (next) {
         if (!this._dc) {
             this._dc = this._id.getTimestamp();
