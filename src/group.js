@@ -254,10 +254,8 @@ function BFS(name, visited, rights, callback) {
 }
 
 function RightObject(group, rights) {
-
     this._group = group;
     this._rights = rights;
-
 }
 
 RightObject.prototype.toJSON = function () {
@@ -265,14 +263,22 @@ RightObject.prototype.toJSON = function () {
         group: this._group,
         rights: {}
     };
-
     for(var i in this._rights) {
         toReturn.rights[i] = {};
         for(var j in this._rights[i]) {
             toReturn.rights[i][j] = getRights(this._rights[i][j]);
         }
     }
+    return toReturn;
+};
 
+RightObject.prototype.getRights = function (group) {
+    var toReturn = {};
+    if (this._rights[group]) {
+        for(var i in this._rights[group]) {
+            toReturn[i] = getRights(this._rights[group][i]);
+        }
+    }
     return toReturn;
 };
 
