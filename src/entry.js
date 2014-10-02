@@ -129,7 +129,7 @@ exports.batch = function (data, options, callback) {
                                             }
                                         });
                                     } else {
-                                        nextCallback(entry);
+                                        nextCallback(null, entry);
                                     }
                                 }
                             });
@@ -296,7 +296,7 @@ function _batch(data, parent) {
                                     }
                                 });
                             } else {
-                                nextCallback(entry);
+                                nextCallback(null, entry);
                             }
                         }
                     });
