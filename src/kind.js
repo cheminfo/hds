@@ -2,6 +2,7 @@
 
 var extend = require('extend'),
     async = require('async'),
+    Promise = require('bluebird'),
     mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     ObjectId = mongoose.Schema.ObjectId,

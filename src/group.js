@@ -1,7 +1,8 @@
 var mongoose = require('mongoose'),
     util = require('./util'),
     validator = require('validator'),
-    async = require('async');
+    async = require('async'),
+    Promise = require('bluebird');
 
 var Rights = {
     READ: 1,
