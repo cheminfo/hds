@@ -100,7 +100,7 @@ exports.batch = function (data, options, callback) {
                     function createNewEntry(value, callback) {
                         var objData, obj;
                         if (value) {
-                            objData = extend({}, value, { _gr: [options.owner] });
+                            objData = extend({}, value.value, { _gr: [options.owner] });
                             obj = parent ? parent.createChild(data.kind, objData) : new KindModel(objData);
                             obj.save(function (err, entry) {
                                 if (err) {
@@ -269,7 +269,7 @@ function _batch(data, parent) {
             function createNewEntry(value, callback) {
                 var obj;
                 if (value) {
-                    obj = parent.createChild(data.kind, extend({}, value));
+                    obj = parent.createChild(data.kind, extend({}, value.value));
                     obj.save(function (err, entry) {
                         if (err) {
                             callback(err);
