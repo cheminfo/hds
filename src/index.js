@@ -4,7 +4,7 @@ var extend = require('extend'),
     mongoose = require('mongoose'),
     debug = require('debug')('hds:init'),
     mongo = require('./mongo'),
-    Promise = require('bluebird'),
+    Promise = require('native-or-bluebird'),
     util = require('./util');
 
 var defaultOptions = {

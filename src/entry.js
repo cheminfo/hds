@@ -2,7 +2,7 @@
 
 var Kind = require('./kind'),
     util = require('./util'),
-    Promise = require('bluebird'),
+    Promise = require('native-or-bluebird'),
     extend = require('extend'),
     mongoose = require('mongoose'),
     ObjectID = mongoose.mongo.ObjectID,

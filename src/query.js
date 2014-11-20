@@ -1,6 +1,6 @@
 'use strict';
 
-var Promise = require('bluebird'),
+var Promise = require('native-or-bluebird'),
     Kind = require('./kind'),
     extend = require('extend'),
     util = require('./util');
