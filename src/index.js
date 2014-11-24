@@ -80,6 +80,7 @@ exports.dropDatabase = function dropDatabase(callback) {
     return util.bindPromise(prom, callback);
 };
 
+exports.mongo = mongoose.mongo;
 exports.Schema = mongoose.Schema;
 
 exports.Kind = require('./kind');
