@@ -17,12 +17,13 @@ There is also a system to manage groups and roles for every piece of information
 
 ## How to use it ?
 
-### Installation and usage
-
 `$ npm install hds`
 
 ```js
 var hds = require('hds');
 ```
 
-[Getting started](guide.md)
+## [Getting started](guide.md)
+
+## Table of contents
+...
