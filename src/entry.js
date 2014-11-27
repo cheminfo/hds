@@ -209,11 +209,7 @@ exports.batch = function (data, options, callback) {
 
 function addAttachment(entry) {
     return function addAttachmentToEntry(attachment, callback) {
-        entry.createAttachment({
-            data: new Buffer(attachment.value, attachment.encoding || 'utf8'),
-            name: attachment.filename,
-            contentType: attachment.contentType
-        }, callback);
+        entry.createAttachment(attachment, callback);
     };
 }
 

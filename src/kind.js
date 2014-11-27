@@ -126,11 +126,9 @@ exports.create = function createKind(name, definition, options) {
     thisSchema.pre('remove', preRemove);
 
     return kinds[name] = mongoose.model('kind_' + name, thisSchema, 'kind_' + name);
-
 };
 
 function createChild(kind, value) {
-
     if (this.isNew) {
         throw new Error('Cannot call method createChild of a new unsaved entry');
     }
@@ -152,7 +150,6 @@ function createChild(kind, value) {
     child._parent = this;
 
     return child;
-
 }
 
 function preSaveChild(next) {
@@ -210,11 +207,9 @@ function preRemove(next) {
             async.each(res._ch, removeEntryChildrenAndAttachments, next);
         }
     });
-
 }
 
 function removeEntryChildrenAndAttachments(entry, cb) {
-
     exports.get(entry.kind, function (err, entryModel) {
         if (err) {
             return cb(err);
@@ -251,7 +246,7 @@ function removeEntryChildrenAndAttachments(entry, cb) {
                 cb();
             }
         });
-    })
+    });
 }
 
 function removeEntryAttachment(att, cb) {
@@ -263,7 +258,6 @@ var getChildrenOptions = {
     groupKind: false
 };
 function getChildren(options, callback) {
-
     if (typeof options === 'function') {
         callback = options;
         options = null;
@@ -279,7 +273,6 @@ function getChildren(options, callback) {
     var self = this;
 
     var prom = new Promise(function (resolve, reject) {
-
         if (options.kind) { // Search all children of a specific kind
             exports.get(options.kind, function (err, kindModel) {
                 if (err) {
@@ -338,20 +331,23 @@ function getChildren(options, callback) {
                 }
             });
         }
-
     });
 
     return util.bindPromise(prom, callback);
-
 }
 
 function getChild(child, callback) {
-    exports.get(child.kind, function (err, kindModel) {
-        if (err) {
-            return callback(err);
-        }
-        kindModel.findOne(child.id, callback);
+    var prom = new Promise(function (resolve, reject) {
+        exports.get(child.kind, function (err, kindModel) {
+            if (err) {
+                return reject(err);
+            }
+            kindModel.findOne(child.id, function (err, res) {
+                err ? reject(err) : resolve(res);
+            });
+        });
     });
+    return util.bindPromise(prom, callback);
 }
 
 /** TODO enable setParent
@@ -370,83 +366,90 @@ function getChild(child, callback) {
  */
 
 function createAttachment(attachment, callback) {
-
     if (this.isNew) {
         throw new Error('Cannot call method createAttachment of a new unsaved entry');
     }
 
-    callback = util.ensureCallback(callback);
-
     var self = this;
-    mongo.writeFile(attachment.data, attachment.name, {
-        root: 'attachments',
-        content_type: attachment.contentType
-    }, function (err, fileData) {
-        if (err) {
-            return callback(err);
-        }
-        var attachment = {
-            _id: fileData._id,
-            fileId: fileData._id,
-            name: fileData.filename,
-            mime: fileData.contentType,
-            md5: fileData.md5
-        };
-        exports.getSync(self.getKind()).findByIdAndUpdate(self._id, {
-            $push: {
-                _at: attachment
-            }
-        }, function (err, res) {
+    var prom = new Promise(function (resolve, reject) {
+        var data = new Buffer(attachment.value, attachment.encoding || 'utf-8');
+        mongo.writeFile(data, attachment.filename, {
+            root: 'attachments',
+            content_type: attachment.contentType
+        }, function (err, fileData) {
             if (err) {
-                return callback(err);
+                return reject(err);
             }
-            callback(null, attachment);
+            var attachment = {
+                _id: fileData._id,
+                fileId: fileData._id,
+                name: fileData.filename,
+                mime: fileData.contentType,
+                md5: fileData.md5
+            };
+            exports.getSync(self.getKind()).findByIdAndUpdate(self._id, {
+                $push: {
+                    _at: attachment
+                }
+            }, function (err) {
+                err ? reject(err) : resolve(attachment);
+            });
         });
     });
+
+    return util.bindPromise(prom, callback);
 }
 
 function removeAttachment(attachmentId, callback) {
-    callback = util.ensureCallback(callback);
-
-    exports.getSync(this.getKind()).findOneAndUpdate({
-        _id: this._id,
-        '_at._id': attachmentId
-    }, {
-        $pull: {
-            _at: {
-                _id: attachmentId
+    var self = this;
+    var prom = new Promise(function (resolve, reject) {
+        exports.getSync(self.getKind()).findOneAndUpdate({
+            _id: this._id,
+            '_at._id': attachmentId
+        }, {
+            $pull: {
+                _at: {
+                    _id: attachmentId
+                }
             }
-        }
-    }, {
-        'new': false // Important because we need to retrieve the fileId
-    }, function (err, res) {
-        if (err) {
-            return callback(err);
-        }
-        if (!res) { // Attachment not found
-            return callback(new Error('attachment with id ' + attachmentId.toString() + ' not found'));
-        }
-        callback(null); // File can be removed from GridFS later
-        for (var i = 0, ii = res._at.length; i < ii; i++) {
-            if (res._at[i]._id.toString() === attachmentId.toString()) {
-                mongo.removeFile(res._at[i].fileId, 'attachments', util.noop);
+        }, {
+            'new': false // Important because we need to retrieve the fileId
+        }, function (err, res) {
+            if (err) {
+                return reject(err);
             }
-        }
+            if (!res) { // Attachment not found
+                return reject(new Error('attachment with id ' + attachmentId.toString() + ' not found'));
+            }
+            resolve(null); // File can be removed from GridFS later
+            for (var i = 0, ii = res._at.length; i < ii; i++) {
+                if (res._at[i]._id.toString() === attachmentId.toString()) {
+                    mongo.removeFile(res._at[i].fileId, 'attachments', util.noop);
+                }
+            }
+        });
     });
+    return util.bindPromise(prom, callback);
 }
 
 function getAttachment(attachmentId, callback) {
-    exports.getSync(this.getKind()).findOne({
-        _id: this._id,
-        '_at._id': attachmentId
-    }, '_at.$.fileId', function (err, res) {
-        if (err) {
-            return callback(err);
-        }
-        mongo.readFile(res._at[0].fileId, {
-            root: 'attachments'
-        }, callback);
+    var self = this;
+    var prom = new Promise(function (resolve, reject) {
+        exports.getSync(self.getKind()).findOne({
+            _id: this._id,
+            '_at._id': attachmentId
+        }, '_at.$.fileId', function (err, res) {
+            if (err) {
+                return reject(err);
+            }
+            mongo.readFile(res._at[0].fileId, {
+                root: 'attachments'
+            }, function (err, res) {
+                err ? reject(err) : resolve(res);
+            });
+        });
     });
+    return util.bindPromise(prom, callback);
 }
 
 exports.setProvider = function setKindProvider(provider) {
