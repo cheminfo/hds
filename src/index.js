@@ -27,14 +27,17 @@ exports.init = function initHds(options, callback) {
     options = extend(true, {}, defaultOptions, options);
 
     var prom = new Promise(function (resolve, reject) {
-        var mongoOptions = {};
-        var dbOptions = options.database;
-        if (dbOptions.user && dbOptions.password) {
-            mongoOptions.user = dbOptions.user;
-            mongoOptions.password = dbOptions.password;
+        if(typeof options.database === 'string') {
+            mongoose.connect(options.database);
+        } else {
+            var mongoOptions = {};
+            var dbOptions = options.database;
+            if (dbOptions.user && dbOptions.password) {
+                mongoOptions.user = dbOptions.user;
+                mongoOptions.password = dbOptions.password;
+            }
+            mongoose.connect(dbOptions.host, dbOptions.name, dbOptions.port, mongoOptions);
         }
-
-        mongoose.connect(dbOptions.host, dbOptions.name, dbOptions.port, mongoOptions);
 
         var conn = mongoose.connection;
         conn.on('error', reject);
