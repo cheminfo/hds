@@ -24,6 +24,19 @@ exports.create = function createEntry(kind, value, options) {
         throw new Error('cannot create an entry without owner');
     }
     entry._gr = [options.owner];
+
+    // TODO check mongoose updates
+    // This is an addition to allow save to behave like a Promise
+    var save = entry.save;
+    entry.save = function (cb) {
+        var prom = new Promise(function (resolve, reject){
+            save.call(entry, function (err) {
+                err ? reject(err) : resolve();
+            });
+        });
+        return util.bindPromise(prom, cb);
+    };
+
     return entry;
 
 };
