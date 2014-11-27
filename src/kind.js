@@ -370,6 +370,11 @@ function getChild(child, callback) {
  */
 
 function createAttachment(attachment, callback) {
+
+    if (this.isNew) {
+        throw new Error('Cannot call method createAttachment of a new unsaved entry');
+    }
+
     callback = util.ensureCallback(callback);
 
     var self = this;
