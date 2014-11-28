@@ -135,4 +135,10 @@ The call is proxied to mongoose's [model](http://mongoosejs.com/docs/api.html#mo
 
 When you have an entry, you can retrieve its children:
 
-** TODO next **
+```js
+// Get all children of the same kind
+myEntry.getChildren({ kind: 'iupac' }).then(...);
+
+// Get all first-level children mapped by kind
+myEntry.getChildren({ groupKind: true }).then(...);
+```
