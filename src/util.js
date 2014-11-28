@@ -1,14 +1,8 @@
 'use strict';
 
-exports.noop = function noop() {
-};
+var Promise = require('native-or-bluebird');
 
-exports.ensureCallback = function ensureCallback(callback) {
-    if (typeof callback === 'function') {
-        return callback;
-    } else {
-        return exports.noop;
-    }
+exports.noop = function noop() {
 };
 
 exports.bindPromise = function bindPromise(promise, callback) {
@@ -19,3 +13,17 @@ exports.bindPromise = function bindPromise(promise, callback) {
     }
     return promise;
 };
+
+exports.promisifySave = function (entry) {
+    // TODO check mongoose updates
+    // This is an addition to allow save to behave like a Promise
+    var save = entry.save;
+    entry.save = function (cb) {
+        var prom = new Promise(function (resolve, reject){
+            save.call(entry, function (err) {
+                err ? reject(err) : resolve();
+            });
+        });
+        return exports.bindPromise(prom, cb);
+    };
+}

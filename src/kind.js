@@ -149,6 +149,8 @@ function createChild(kind, value) {
     child._newChild = true;
     child._parent = this;
 
+    util.promisifySave(child);
+
     return child;
 }
 
