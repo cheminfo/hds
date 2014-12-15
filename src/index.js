@@ -16,6 +16,7 @@ var defaultOptions = {
         password: null
     }
 };
+var customs = {};
 
 exports.init = function initHds(options, callback) {
 
@@ -68,7 +69,7 @@ exports.customCollection = function customCollection(name, schema) {
     if (!schema instanceof mongoose.Schema) {
         throw new Error('Provided schema is of invalid type');
     }
-    return mongoose.model('custom_' + name, schema, 'custom_' + name);
+    return customs[name] = mongoose.model('custom_' + name, schema, 'custom_' + name);
 };
 
 exports.dropDatabase = function dropDatabase(callback) {
@@ -81,6 +82,13 @@ exports.dropDatabase = function dropDatabase(callback) {
         })
     });
     return util.bindPromise(prom, callback);
+};
+
+exports.getSync = function getCustomModelSync(name) {
+    if (!customs[name]) {
+        throw new Error('Custom ' + name + ' is not loaded');
+    }
+    return customs[name];
 };
 
 exports.mongo = mongoose.mongo;
