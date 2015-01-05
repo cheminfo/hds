@@ -60,7 +60,7 @@ hds.init({
 }).then(hdsReady)
 ```
 
-You can see that `init` returns a `Promise`. This is the case for most of the asynchronous methods of HDS. If you are more familiar with the Node JS callback style, you cann also use it.
+You can see that `init` returns a `Promise`. This is the case for most of the asynchronous methods of HDS.
 
 ### 3. Define kinds
 
