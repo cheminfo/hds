@@ -17,6 +17,8 @@ var defaultOptions = {
     }
 };
 
+var customs = {};
+
 exports.init = function initHds(options) {
 
     options = extend(true, {}, defaultOptions, options);
@@ -55,10 +57,17 @@ exports.close = function closeHds() {
 };
 
 exports.customCollection = function customCollection(name, schema) {
-    if (!schema instanceof mongoose.Schema) {
-        throw new Error('Provided schema is of invalid type');
+    if (customs[name]) {
+        return customs[name];
     }
-    return mongoose.model('custom_' + name, schema, 'custom_' + name);
+    if (schema) {
+        if (!schema instanceof mongoose.Schema) {
+            schema = new mongoose.Schema(schema);
+        }
+        return customs[name] = mongoose.model('custom_' + name, schema, 'custom_' + name);
+    } else {
+        throw new Error('Custom collection ' + name + ' is not defined yet');
+    }
 };
 
 exports.dropDatabase = function dropDatabase() {
