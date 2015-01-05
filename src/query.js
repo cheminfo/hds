@@ -50,24 +50,23 @@ Query.prototype._log = function (result) {
     }
 };
 
-Query.prototype.count = function (callback) {
+Query.prototype.count = function () {
 
     this._exec();
 
     var self = this;
-    var prom = this._executionPromise.then(function (result) {
+    return this._executionPromise.then(function (result) {
         return self._log(result.length);
     });
-    return util.bindPromise(prom, callback);
 
 };
 
-Query.prototype.all = function (callback) {
+Query.prototype.all = function () {
 
     this._exec();
 
     var self = this;
-    var prom = this._executionPromise.then(function (result) {
+    return this._executionPromise.then(function (result) {
 
         result = result.slice(self._options.skip, self._options.skip + self._options.limit);
 
@@ -90,11 +89,10 @@ Query.prototype.all = function (callback) {
         });
 
     });
-    return util.bindPromise(prom, callback);
 
 };
 
-Query.prototype.exec = function (callback) {
+Query.prototype.exec = function () {
     throw new Error('Unimplemented exec');
     // TODO iterator version
 };
@@ -115,8 +113,8 @@ Query.createOperator = function (name, method) {
     customOperators[name] = method;
 };
 
-Query.apply = function (query, model, callback) {
-    var mainPromise = new Promise(function (resolve, reject) {
+Query.apply = function (query, model) {
+    return new Promise(function (resolve, reject) {
 
         var prom;
         if (typeof model === 'string') {
@@ -146,8 +144,6 @@ Query.apply = function (query, model, callback) {
         }, reject);
 
     });
-    util.bindPromise(mainPromise, callback);
-    return mainPromise;
 };
 
 /*

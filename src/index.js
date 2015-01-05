@@ -17,16 +17,11 @@ var defaultOptions = {
     }
 };
 
-exports.init = function initHds(options, callback) {
-
-    if (typeof options === 'function') {
-        callback = options;
-        options = null;
-    }
+exports.init = function initHds(options) {
 
     options = extend(true, {}, defaultOptions, options);
 
-    var prom = new Promise(function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
         if(typeof options.database === 'string') {
             mongoose.connect(options.database);
         } else {
@@ -48,19 +43,14 @@ exports.init = function initHds(options, callback) {
             resolve();
         });
     });
-
-    return util.bindPromise(prom, callback);
-
 };
 
-exports.close = function closeHds(callback) {
-
-    var prom = new Promise(function (resolve) {
+exports.close = function closeHds() {
+    return new Promise(function (resolve) {
         mongoose.disconnect(function () {
             resolve();
         });
     });
-    return util.bindPromise(prom, callback);
 
 };
 
@@ -71,8 +61,8 @@ exports.customCollection = function customCollection(name, schema) {
     return mongoose.model('custom_' + name, schema, 'custom_' + name);
 };
 
-exports.dropDatabase = function dropDatabase(callback) {
-    var prom = new Promise(function (resolve, reject) {
+exports.dropDatabase = function dropDatabase() {
+    return new Promise(function (resolve, reject) {
         mongoose.connection.db.dropDatabase(function (err) {
             if (err) {
                 return reject(err);
@@ -80,7 +70,6 @@ exports.dropDatabase = function dropDatabase(callback) {
             resolve();
         })
     });
-    return util.bindPromise(prom, callback);
 };
 
 exports.mongo = mongoose.mongo;

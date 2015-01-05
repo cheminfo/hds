@@ -39,15 +39,13 @@ exports.create = function createEntry(kind, value, options) {
  - add : insert new entry without searching, then treat children
  - replace : remove all entries that match query, then create entry with value, then treat children
  */
-exports.batch = function (data, options, callback) {
-
-    var prom;
-    if (data instanceof Array) {
-        prom = Promise.all(data.map(function (dataVal) {
+exports.batch = function (data, options) {
+    if (Array.isArray(data)) {
+        return Promise.all(data.map(function (dataVal) {
             return exports.batch(dataVal, options);
         }));
     } else {
-        prom = new Promise(function (resolve, reject) {
+        return new Promise(function (resolve, reject) {
 
             if (!data.kind) {
                 return reject(new Error('Batch method requires a kind for each element'));
@@ -92,9 +90,9 @@ exports.batch = function (data, options, callback) {
                             kind: parent.getKind(),
                             id: parent.id
                         };
-                        query.$and.unshift({ _an: { $elemMatch: parentQuery } });
+                        query.$and.unshift({_an: {$elemMatch: parentQuery}});
                     } else {
-                        query.$and.unshift({ _an: { $size: 0 } });
+                        query.$and.unshift({_an: {$size: 0}});
                     }
 
                     var finalCallback = getFinalCallback(resolve, reject),
@@ -103,7 +101,7 @@ exports.batch = function (data, options, callback) {
                     function createNewEntry(value, callback) {
                         var objData, obj;
                         if (value) {
-                            objData = extend({}, value.value, { _gr: [options.owner] });
+                            objData = extend({}, value.value, {_gr: [options.owner]});
                             obj = parent ? parent.createChild(data.kind, objData) : new KindModel(objData);
                             obj.save(function (err, entry) {
                                 if (err) {
@@ -117,7 +115,7 @@ exports.batch = function (data, options, callback) {
                                 }
                             });
                         } else {
-                            objData = extend({}, data.query, data.value, { _gr: [options.owner] });
+                            objData = extend({}, data.query, data.value, {_gr: [options.owner]});
                             obj = parent ? parent.createChild(data.kind, objData) : new KindModel(objData);
                             obj.save(function (err, entry) {
                                 if (err) {
@@ -144,8 +142,8 @@ exports.batch = function (data, options, callback) {
                             return reject(err);
                         }
                         var values = data.values || [
-                            { value: data.value, attachments: data.attachments }
-                        ];
+                                {value: data.value, attachments: data.attachments}
+                            ];
                         async.each(values, createNewEntry, finalCallback);
                     }
 
@@ -193,8 +191,6 @@ exports.batch = function (data, options, callback) {
 
         });
     }
-    return util.bindPromise(prom, callback);
-
 };
 
 function addAttachment(entry) {
@@ -254,8 +250,8 @@ function _batch(data, parent) {
 
             var query = {
                 $and: [
-                    { _an: { $elemMatch: parentQuery } },
-                    { '_gr.0': parent.owner, _an: ancestors }
+                    {_an: {$elemMatch: parentQuery}},
+                    {'_gr.0': parent.owner, _an: ancestors}
                 ]
             };
             if (data.query) {
@@ -307,8 +303,8 @@ function _batch(data, parent) {
                     return reject(err);
                 }
                 var values = data.values || [
-                    { value: data.value, attachments: data.attachments }
-                ];
+                        {value: data.value, attachments: data.attachments}
+                    ];
                 async.each(values, createNewEntry, finalCallback);
             }
 
@@ -355,14 +351,14 @@ function _batch(data, parent) {
     });
 }
 
-exports.insertTree = function (tree, options, callback) {
+exports.insertTree = function (tree, options) {
 
     options = options || {};
     if (!options.owner) {
         throw new Error('cannot create an entry without owner');
     }
 
-    var prom = new Promise(function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
 
         if (!tree) {
             return reject(new Error('missing tree parameter'));
@@ -398,9 +394,6 @@ exports.insertTree = function (tree, options, callback) {
         }, reject);
 
     });
-
-    return util.bindPromise(prom, callback);
-
 };
 
 function appendChildren(parent, children) {

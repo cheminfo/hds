@@ -259,11 +259,7 @@ var getChildrenOptions = {
     kind: null,
     groupKind: false
 };
-function getChildren(options, callback) {
-    if (typeof options === 'function') {
-        callback = options;
-        options = null;
-    }
+function getChildren(options) {
 
     options = extend({}, getChildrenOptions, options);
 
@@ -274,7 +270,7 @@ function getChildren(options, callback) {
 
     var self = this;
 
-    var prom = new Promise(function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
         if (options.kind) { // Search all children of a specific kind
             exports.get(options.kind, function (err, kindModel) {
                 if (err) {
@@ -334,12 +330,10 @@ function getChildren(options, callback) {
             });
         }
     });
-
-    return util.bindPromise(prom, callback);
 }
 
-function getChild(child, callback) {
-    var prom = new Promise(function (resolve, reject) {
+function getChild(child) {
+    return new Promise(function (resolve, reject) {
         exports.get(child.kind, function (err, kindModel) {
             if (err) {
                 return reject(err);
@@ -349,7 +343,6 @@ function getChild(child, callback) {
             });
         });
     });
-    return util.bindPromise(prom, callback);
 }
 
 /** TODO enable setParent
@@ -367,13 +360,13 @@ function getChild(child, callback) {
 }
  */
 
-function createAttachment(attachment, callback) {
+function createAttachment(attachment) {
     if (this.isNew) {
         throw new Error('Cannot call method createAttachment of a new unsaved entry');
     }
 
     var self = this;
-    var prom = new Promise(function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
         var data = new Buffer(attachment.value, attachment.encoding || 'utf-8');
         mongo.writeFile(data, attachment.filename, {
             root: 'attachments',
@@ -398,13 +391,11 @@ function createAttachment(attachment, callback) {
             });
         });
     });
-
-    return util.bindPromise(prom, callback);
 }
 
-function removeAttachment(attachmentId, callback) {
+function removeAttachment(attachmentId) {
     var self = this;
-    var prom = new Promise(function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
         exports.getSync(self.getKind()).findOneAndUpdate({
             _id: this._id,
             '_at._id': attachmentId
@@ -431,12 +422,11 @@ function removeAttachment(attachmentId, callback) {
             }
         });
     });
-    return util.bindPromise(prom, callback);
 }
 
-function getAttachment(attachmentId, callback) {
+function getAttachment(attachmentId) {
     var self = this;
-    var prom = new Promise(function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
         exports.getSync(self.getKind()).findOne({
             _id: this._id,
             '_at._id': attachmentId
@@ -451,7 +441,6 @@ function getAttachment(attachmentId, callback) {
             });
         });
     });
-    return util.bindPromise(prom, callback);
 }
 
 exports.setProvider = function setKindProvider(provider) {
@@ -462,8 +451,8 @@ exports.setProvider = function setKindProvider(provider) {
     }
 };
 
-exports.get = function getKindModel(name, callback) {
-    var prom = new Promise(function (resolve, reject) {
+exports.get = function getKindModel(name) {
+    return new Promise(function (resolve, reject) {
         if (kinds[name]) {
             resolve(kinds[name]);
         } else {
@@ -476,7 +465,6 @@ exports.get = function getKindModel(name, callback) {
             });
         }
     });
-    return util.bindPromise(prom, callback);
 };
 
 exports.getSync = function getKindModelSync(name) {

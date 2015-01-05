@@ -69,8 +69,8 @@ rightSchema.methods.addRight = function (right) {
 
 var Right = mongoose.model('Right', rightSchema, 'rights');
 
-exports.addRight = function addRight(group, target, user, right, callback) {
-    var prom = new Promise(function (resolve, reject) {
+exports.addRight = function addRight(group, target, user, right) {
+    return new Promise(function (resolve, reject) {
         function addRights() {
             if (!(right instanceof Array)) {
                 right = [right];
@@ -120,11 +120,10 @@ exports.addRight = function addRight(group, target, user, right, callback) {
             });
         }
     });
-    return util.bindPromise(prom, callback);
 };
 
-exports.create = function createGroup(name, user, callback) {
-    var prom = new Promise(function (resolve, reject) {
+exports.create = function createGroup(name, user) {
+    return new Promise(function (resolve, reject) {
 
         if (validator.isEmail(name)) {
             return reject(new Error('Group name cannot be an email'));
@@ -157,12 +156,11 @@ exports.create = function createGroup(name, user, callback) {
         });
 
     });
-    return util.bindPromise(prom, callback);
 };
 
 //  http://en.wikipedia.org/wiki/Breadth-first_search
-exports.getRights = function (group, callback) {
-    var prom = new Promise(function (resolve, reject) {
+exports.getRights = function (group) {
+    return new Promise(function (resolve, reject) {
 
         var visited = {},
             rights = {};
@@ -178,7 +176,6 @@ exports.getRights = function (group, callback) {
         });
 
     });
-    return util.bindPromise(prom, callback);
 };
 
 function BFS(name, visited, rights, callback) {
