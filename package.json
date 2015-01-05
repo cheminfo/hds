@@ -28,6 +28,6 @@
     "gridfs-stream": "^0.5.3",
     "mongoose": "^3.9.7",
     "native-or-bluebird": "^1.1.2",
-    "validator": "^3.22.1"
+    "validator": "^3.27.0"
   }
 }
