@@ -1,5 +1,4 @@
 var mongoose = require('mongoose'),
-    util = require('./util'),
     validator = require('validator'),
     async = require('async'),
     Promise = require('native-or-bluebird');

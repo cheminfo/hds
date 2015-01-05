@@ -2,8 +2,7 @@
 
 var Promise = require('native-or-bluebird'),
     Kind = require('./kind'),
-    extend = require('extend'),
-    util = require('./util');
+    extend = require('extend');
 
 var customOperators = {};
 
