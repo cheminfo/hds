@@ -430,7 +430,7 @@ function removeAttachment(attachmentId) {
     var self = this;
     return new Promise(function (resolve, reject) {
         exports.getSync(self.getKind()).findOneAndUpdate({
-            _id: this._id,
+            _id: self._id,
             '_at._id': attachmentId
         }, {
             $pull: {
@@ -461,7 +461,7 @@ function getAttachment(attachmentId) {
     var self = this;
     return new Promise(function (resolve, reject) {
         exports.getSync(self.getKind()).findOne({
-            _id: this._id,
+            _id: self._id,
             '_at._id': attachmentId
         }, '_at.$.fileId', function (err, res) {
             if (err) {
