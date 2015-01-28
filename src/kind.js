@@ -42,8 +42,41 @@ var baseOptions = {
 
 var kinds = {};
 
-var kindProvider = function defaultProvider(kind, callback) {
-    callback(new Error('Kind ' + kind + ' not found'));
+exports.notifyChange = function notifyChange(kind, newdef, newopts) {
+    kinds[kind] = null;
+    if (newdef) {
+        exports.create(kind, newdef, newopts);
+    }
+};
+
+var kindProvider = function defaultProvider(kind) {
+    return Promise.reject(new Error('Kind ' + kind + ' not found'));
+};
+
+exports.setProvider = function setKindProvider(provider) {
+    if (typeof provider === 'function') {
+        kindProvider = provider;
+    } else {
+        throw new Error('Kind provider must be a function');
+    }
+};
+
+exports.get = function getKindModel(name) {
+    if (kinds[name]) {
+        return Promise.resolve(kinds[name]);
+    } else {
+        return kindProvider(name).then(function gotKindHandler(res) {
+            exports.create(name, res.definition, res.options);
+            return kinds[name];
+        });
+    }
+};
+
+exports.getSync = function getKindModelSync(name) {
+    if (!kinds[name]) {
+        throw new Error('Kind ' + name + ' is not loaded');
+    }
+    return kinds[name];
 };
 
 var hooks = [
@@ -442,34 +475,3 @@ function getAttachment(attachmentId) {
         });
     });
 }
-
-exports.setProvider = function setKindProvider(provider) {
-    if (typeof provider === 'function') {
-        kindProvider = provider;
-    } else {
-        throw new Error('Kind provider must be a function');
-    }
-};
-
-exports.get = function getKindModel(name) {
-    return new Promise(function (resolve, reject) {
-        if (kinds[name]) {
-            resolve(kinds[name]);
-        } else {
-            kindProvider(name, function gotKindHandler(err, res) {
-                if (err) {
-                    return reject(err);
-                }
-                exports.create(name, res.definition, res.options);
-                resolve(kinds[name]);
-            });
-        }
-    });
-};
-
-exports.getSync = function getKindModelSync(name) {
-    if (!kinds[name]) {
-        throw new Error('Kind ' + name + ' is not loaded');
-    }
-    return kinds[name];
-};
