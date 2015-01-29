@@ -162,25 +162,26 @@ exports.create = function createKind(name, definition, options) {
 };
 
 function createChild(kind, value) {
-    if (this.isNew) {
+    var self = this;
+    if (self.isNew) {
         throw new Error('Cannot call method createChild of a new unsaved entry');
     }
 
-    var kindModel = exports.getSync(kind);
-    var child = new kindModel(value);
-    child._gr = this._gr.slice();                           // By default, owner is propagated
-    for (var i = 0; i < this._an.length; i++) {
+    var KindModel = exports.getSync(kind);
+    var child = new KindModel(value);
+    child._gr = self._gr.slice();                           // By default, owner is propagated
+    for (var i = 0; i < self._an.length; i++) {
         child._an.push({
-            kind: this._an[i].kind,
-            id: this._an[i].id
+            kind: self._an[i].kind,
+            id: self._an[i].id
         });
     }
     child._an.push({
-        kind: this.getKind(),
-        id: this._id
+        kind: self.getKind(),
+        id: self._id
     });
     child._newChild = true;
-    child._parent = this;
+    child._parent = self;
 
     util.promisifySave(child);
 
@@ -189,13 +190,13 @@ function createChild(kind, value) {
 
 function preSaveChild(next) {
     var self = this;
-    if (this._newChild) {
-        var parentModel = exports.getSync(this._parent.getKind());
-        parentModel.findByIdAndUpdate(this._parent._id, {
+    if (self._newChild) {
+        var parentModel = exports.getSync(self._parent.getKind());
+        parentModel.findByIdAndUpdate(self._parent._id, {
             $push: {
                 _ch: {
-                    kind: this.getKind(),
-                    id: this._id
+                    kind: self.getKind(),
+                    id: self._id
                 }
             }
         }, function (err) {
@@ -211,9 +212,10 @@ function preSaveChild(next) {
 }
 
 function preRemove(next) {
+    var self = this;
     var ref = {
-        kind: this.getKind(),
-        id: this._id
+        kind: self.getKind(),
+        id: self._id
     };
 
     exports.getSync(ref.kind).findById(ref.id, function (err, res) {
@@ -293,22 +295,17 @@ var getChildrenOptions = {
     groupKind: false
 };
 function getChildren(options) {
-
+    var self = this;
     options = extend({}, getChildrenOptions, options);
 
     var ref = {
-        kind: this.getKind(),
-        id: this._id
+        kind: self.getKind(),
+        id: self._id
     };
-
-    var self = this;
 
     return new Promise(function (resolve, reject) {
         if (options.kind) { // Search all children of a specific kind
-            exports.get(options.kind, function (err, kindModel) {
-                if (err) {
-                    return reject(err);
-                }
+            exports.get(options.kind).then(function (kindModel) {
                 kindModel.find({
                     _an: {
                         $elemMatch: ref
@@ -319,7 +316,7 @@ function getChildren(options) {
                     }
                     resolve(res);
                 });
-            });
+            }, reject);
         } else { // Retrieve all first level children of this entry
             var kindModel = exports.getSync(ref.kind);
             kindModel.findOne(self._id, function (err, res) {
@@ -329,7 +326,13 @@ function getChildren(options) {
                     return reject(new Error('Entry with id ' + self._id + ' does not exist anymore'));
                 }
                 if (!options.groupKind) { // Put all children in the same array
-                    async.map(res._ch, getChild, function (err, res) {
+                    async.map(res._ch, function(el, callback){
+                        getChild(el).then(function (ch) {
+                            callback(null, ch);
+                        }, function (err) {
+                            callback(err);
+                        });
+                    }, function (err, res) {
                         if (err) {
                             return reject(err);
                         }
@@ -341,18 +344,15 @@ function getChildren(options) {
                         if (!children[el.kind]) {
                             children[el.kind] = [];
                         }
-                        exports.get(el.kind, function (err, kindModel) {
-                            if (err) {
-                                return cb(err);
-                            }
-                            kindModel.findOne(el.id, function (err, child) {
+                        exports.get(el.kind).then(function (KindModel) {
+                            KindModel.findOne(el.id, function (err, child) {
                                 if (err) {
                                     return cb(err);
                                 }
                                 children[el.kind].push(child);
                                 cb();
                             });
-                        });
+                        }, cb);
                     }, function (err) {
                         if (err) {
                             return reject(err);
@@ -367,14 +367,11 @@ function getChildren(options) {
 
 function getChild(child) {
     return new Promise(function (resolve, reject) {
-        exports.get(child.kind, function (err, kindModel) {
-            if (err) {
-                return reject(err);
-            }
+        exports.get(child.kind).then(function (kindModel) {
             kindModel.findOne(child.id, function (err, res) {
                 err ? reject(err) : resolve(res);
             });
-        });
+        }, reject);
     });
 }
 
@@ -394,11 +391,11 @@ function getChild(child) {
  */
 
 function createAttachment(attachment) {
-    if (this.isNew) {
+    var self = this;
+    if (self.isNew) {
         throw new Error('Cannot call method createAttachment of a new unsaved entry');
     }
 
-    var self = this;
     return new Promise(function (resolve, reject) {
         var data = new Buffer(attachment.value, attachment.encoding || 'utf-8');
         mongo.writeFile(data, attachment.filename, {
