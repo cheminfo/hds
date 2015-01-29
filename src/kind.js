@@ -19,18 +19,23 @@ var dbRefSchema = {
     _id: false
 };
 
-var attachmentSchema = {
-    _id: ObjectId,
-    fileId: ObjectId,
-    name: 'string',
-    mime: 'string',
-    md5: 'string'
+var defaultFileOptions = {
+    filename: 'untitled.txt',
+    mimetype: 'text/plain',
+    encoding: 'utf-8'
 };
+
+function File(options) {
+    this.options = extend({}, defaultFileOptions, options);
+}
+
+exports.File = File;
+exports.DefaultFile = new File();
 
 var baseDefinition = {
     _an: [dbRefSchema],         // Ancestors array
     _ch: [dbRefSchema],         // Children array
-    _at: [attachmentSchema],    // Attachments array
+    _at: [ObjectId],            // Attachments array - Needed for security and easy removal
     _dc: Date,                  // Date of creation
     _dm: Date,                  // Date of modification
     _gr: [String]               // Groups
@@ -95,11 +100,7 @@ exports.create = function createKind(name, definition, options) {
         throw new Error('Kind definition has to be an object');
     }
 
-    for (var i in definition) {
-        if (i[0] === '_') {
-            throw new Error('Kind definition cannot contain fields that begin with a "_". Found: ' + i);
-        }
-    }
+    var fileFields = validateSchema(definition);
 
     var thisDef = extend({}, baseDefinition, definition);
     var thisOptions = extend({}, baseOptions);
@@ -109,7 +110,7 @@ exports.create = function createKind(name, definition, options) {
     options = options || {};
 
     var hookName, preHookName, postHookName;
-    for (i = 0; i < hooks.length; i++) {
+    for (var i = 0; i < hooks.length; i++) {
         hookName = hooks[i];
         preHookName = 'pre' + hookName;
         if (options[preHookName] && typeof options[preHookName] === 'function') {
@@ -140,6 +141,10 @@ exports.create = function createKind(name, definition, options) {
         return name;
     };
 
+    thisSchema.methods.getPossibleFiles = function () {
+        return fileFields;
+    };
+
     thisSchema.virtual('owner').set(function (v) {
         this._gr[0] = v; // TODO check
     }).get(function () {
@@ -154,12 +159,125 @@ exports.create = function createKind(name, definition, options) {
     thisSchema.methods.removeAttachment = removeAttachment;
     thisSchema.methods.getAttachment = getAttachment;
 
+    thisSchema.pre('validate', preValidateFiles);
 
     thisSchema.pre('save', preSaveChild);
     thisSchema.pre('remove', preRemove);
 
     return kinds[name] = mongoose.model('kind_' + name, thisSchema, 'kind_' + name);
 };
+
+/*function fileSetter(value, config) {
+    var options = config.options.hdsFile;
+    var toStore = {
+        _id: ObjectId(),
+        filename : options.filename,
+        contentType: options.mimetype,
+        encoding: options.encoding
+    };
+    if (typeof value === 'string') {
+        toStore.content = value;
+    } else if (typeof value === 'object') {
+        toStore.content = value.value;
+        if (value.encoding) toStore.encoding = value.encoding;
+        if (value.mimetype) toStore.mimetype = value.mimetype;
+        if (value.filename) toStore.filename = value.filename;
+    }
+}*/
+
+function preValidateFiles(next) {
+    var files = this.getPossibleFiles();
+    loop1: for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var el = this;
+        var jpath = file.jpath;
+        var len = jpath.length - 1;
+        for (var j = 0; j < len; j++) {
+            if (jpath[j] === '$') {
+                preValidateFilesArray(this, el, jpath.slice(j+1), file);
+                continue loop1;
+            } else {
+                el = el[jpath[j]];
+            }
+        }
+        checkFileStatus(this, el, jpath[len], file);
+    }
+    next();
+}
+
+function checkFileStatus(obj, el, prop, file) {
+    var value = el[prop];
+    if (value) {
+        if (value._id) {
+            // file is already there
+            // should not need a check, users are not supposed to change manually
+        } else { // new file or replacement
+            removeCurrentFile(obj, file);
+            var toStore = {
+                _id: ObjectId(),
+                filename : file.file.filename,
+                contentType: file.file.mimetype,
+                encoding: file.file.encoding
+            };
+            if (typeof value === 'string') {
+                toStore.content = value;
+            } else if (typeof value === 'object') {
+                toStore.content = value.value;
+                if (value.encoding) toStore.encoding = value.encoding;
+                if (value.mimetype) toStore.mimetype = value.mimetype;
+                if (value.filename) toStore.filename = value.filename;
+            }
+
+        }
+    } else {
+        // check if it was removed ?
+    }
+}
+
+function removeCurrentFile(obj, file) {
+
+}
+
+var fileSchema = {
+    _id: ObjectId,
+    _t: String
+};
+
+function validateSchema(schema, fileFields, jpath) {
+    fileFields = fileFields || [];
+    jpath = jpath || [];
+    for (var i in schema) {
+        if (i[0] === '_' || i[0] === '$') {
+            throw new Error('Kind definition cannot contain fields that begin with a "_" or a "$". Found: ' + i);
+        }
+        if (i.indexOf('.') >= 0) {
+            throw new Error('Kind definition cannot contain fields that contain a ".". Found: ' + i);
+        }
+        var el = schema[i];
+        var elJpath = jpath.slice();
+        elJpath.push(i);
+        var arr;
+        if (Array.isArray(el)) {
+            elJpath.push('$');
+            el = el[0];
+            arr = true;
+        }
+        if (el instanceof File) {
+            if (arr) {
+                schema[i][0] = fileSchema;
+            } else {
+                schema[i] = fileSchema;
+            }
+            fileFields.push({
+                jpath: elJpath,
+                file: el
+            });
+        } else if (typeof el === 'object') {
+            validateSchema(el, fileFields, elJpath);
+        }
+    }
+    return fileFields;
+}
 
 function createChild(kind, value) {
     if (this.isNew) {
@@ -467,10 +585,13 @@ function getAttachment(attachmentId) {
             if (err) {
                 return reject(err);
             }
+            res = res.toObject();
             mongo.readFile(res._at[0].fileId, {
                 root: 'attachments'
-            }, function (err, res) {
-                err ? reject(err) : resolve(res);
+            }, function (err, att) {
+                var result = res._at[0];
+                result.content = att;
+                err ? reject(err) : resolve(result);
             });
         });
     });
