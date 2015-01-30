@@ -25,8 +25,6 @@ exports.create = function createEntry(kind, value, options) {
     }
     entry._gr = [options.owner];
 
-    util.promisifySave(entry);
-
     return entry;
 
 };
