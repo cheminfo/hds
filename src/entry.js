@@ -17,8 +17,8 @@ exports.create = function createEntry(kind, value, options) {
 
     options = options || {};
 
-    var kindModel = Kind.getSync(kind);
-    var entry = new kindModel(value);
+    var KindModel = Kind.getSync(kind);
+    var entry = new KindModel(value);
     // TODO handle options
     if (!options.owner) {
         throw new Error('cannot create an entry without owner');
@@ -209,7 +209,7 @@ function getFinalCallback(resolve, reject) {
             return reject(err);
         }
         resolve();
-    }
+    };
 }
 
 function getNextCallback(resolve, reject, data) {
@@ -226,7 +226,7 @@ function getNextCallback(resolve, reject, data) {
         } else {
             resolve();
         }
-    }
+    };
 }
 
 function _batch(data, parent) {
@@ -240,7 +240,7 @@ function _batch(data, parent) {
 
         var parentQuery = {
             kind: parent.getKind(),
-            id: ObjectID(parent.id)
+            id: new ObjectID(parent.id)
         };
 
         var ancestors = parent._an.slice();
@@ -255,7 +255,7 @@ function _batch(data, parent) {
                 ]
             };
             if (data.query) {
-                query.$and.push(extend({}, data.query))
+                query.$and.push(extend({}, data.query));
             }
 
             var finalCallback = getFinalCallback(resolve, reject),
@@ -364,9 +364,9 @@ exports.insertTree = function (tree, options) {
             return reject(new Error('missing tree parameter'));
         }
 
-        Kind.get(tree.kind).then(function (kindModel) {
+        Kind.get(tree.kind).then(function (KindModel) {
 
-            var rootVal = new kindModel(tree.value);
+            var rootVal = new KindModel(tree.value);
             rootVal.owner = options.owner;
             rootVal.save(function (err, rootVal) {
 
