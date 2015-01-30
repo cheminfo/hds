@@ -193,7 +193,11 @@ exports.batch = function (data, options) {
 
 function addAttachment(entry) {
     return function addAttachmentToEntry(attachment, callback) {
-        entry.createAttachment(attachment, callback);
+        entry.createAttachment(attachment).then(function (result) {
+            callback(null, result);
+        }, function (err) {
+            callback(err);
+        });
     };
 }
 

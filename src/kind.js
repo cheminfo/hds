@@ -393,30 +393,24 @@ function createAttachment(attachment) {
     if (self.isNew) {
         throw new Error('Cannot call method createAttachment of a new unsaved entry');
     }
-
-    return new Promise(function (resolve, reject) {
-        var data = new Buffer(attachment.value, attachment.encoding || 'utf-8');
-        mongo.writeFile(data, attachment.filename, {
-            root: 'attachments',
-            content_type: attachment.contentType
-        }, function (err, fileData) {
-            if (err) {
-                return reject(err);
+    var data = new Buffer(attachment.value, attachment.encoding || 'utf-8');
+    return mongo.writeFile(data, attachment.filename, {
+        root: 'attachments',
+        content_type: attachment.mimetype
+    }).then(function (fileData) {
+        var attachment = {
+            _id: fileData._id,
+            fileId: fileData._id,
+            name: fileData.filename,
+            mime: fileData.contentType,
+            md5: fileData.md5
+        };
+        return exports.getSync(self.getKind()).findByIdAndUpdate(self._id, {
+            $push: {
+                _at: attachment
             }
-            var attachment = {
-                _id: fileData._id,
-                fileId: fileData._id,
-                name: fileData.filename,
-                mime: fileData.contentType,
-                md5: fileData.md5
-            };
-            exports.getSync(self.getKind()).findByIdAndUpdate(self._id, {
-                $push: {
-                    _at: attachment
-                }
-            }, function (err) {
-                err ? reject(err) : resolve(attachment);
-            });
+        }).exec().then(function () {
+            return attachment;
         });
     });
 }

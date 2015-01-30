@@ -16,15 +16,24 @@ exports._setMongo = function (db) {
     gridStream = GridStream(db);
 };
 
-exports.writeFile = function (content, filename, options, callback) {
-    var gridStore = new GridStore(mongoDB, new ObjectID(), filename, 'w', options);
-    gridStore.open(function (err, gridStore) {
-        if (err)
-            return callback(err);
-        gridStore.write(content, function (err, gridStore) {
-            if (err)
-                return callback(err);
-            gridStore.close(callback);
+exports.writeFile = function (content, filename, options) {
+    return new Promise(function (resolve, reject) {
+        var gridStore = new GridStore(mongoDB, new ObjectID(), filename, 'w', options);
+        gridStore.open(function (err, gridStore) {
+            if (err) {
+                return reject(err);
+            }
+            gridStore.write(content, function (err, gridStore) {
+                if (err) {
+                    return reject(err);
+                }
+                gridStore.close(function (err, result) {
+                    if (err) {
+                        return reject(err);
+                    }
+                    resolve(result);
+                });
+            });
         });
     });
 };
