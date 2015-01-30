@@ -57,35 +57,40 @@ exports.readFile = function (fileId, options) {
     });
 };
 
-exports.writeStream = function (stream, options, callback) {
-    var writeStream = gridStream.createWriteStream(options);
-    stream.pipe(writeStream);
-    writeStream.on('close', function (res) {
-        callback(null, res);
-    });
-    writeStream.on('error', function (err) {
-        callback(err);
+exports.writeStream = function (stream, options) {
+    return new Promise(function (resolve, reject) {
+        var writeStream = gridStream.createWriteStream(options);
+        stream.pipe(writeStream);
+        writeStream.on('close', function (res) {
+            resolve(res);
+        });
+        writeStream.on('error', function (err) {
+            reject(err);
+        });
     });
 };
 
-exports.readStream = function (options, callback) {
-    var id = options._id ? ObjectID(options._id) : options.name;
-    if (!id) {
-        return callback(Error('mongo.readStream: need option _id or name'));
-    }
-    var gs = new GridStore(mongoDB, id, 'r', {
-        root: options.root
-    });
-    gs.open(function (err, gs) {
-        if (err)
-            return callback(err);
-        var stream = new PassThrough();
-        gs.stream().pipe(stream);
-        callback(null, {
-            stream: stream,
-            filename: gs.filename,
-            contentType: gs.contentType,
-            length: gs.length
+exports.readStream = function (options) {
+    return new Promise(function (resolve, reject) {
+        var id = options._id ? ObjectID(options._id) : options.name;
+        if (!id) {
+            return reject(new Error('mongo.readStream: need option _id or name'));
+        }
+        var gs = new GridStore(mongoDB, id, 'r', {
+            root: options.root
+        });
+        gs.open(function (err, gs) {
+            if (err) {
+                return reject(err);
+            }
+            var stream = new PassThrough();
+            gs.stream().pipe(stream);
+            resolve({
+                stream: stream,
+                filename: gs.filename,
+                contentType: gs.contentType,
+                length: gs.length
+            });
         });
     });
 };
