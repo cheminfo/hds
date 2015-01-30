@@ -41,7 +41,7 @@ exports.writeFile = function (content, filename, options) {
 exports.readFile = function (fileId, options) {
     return new Promise(function (resolve, reject) {
         var gridStore = new GridStore(mongoDB, ObjectID(fileId), 'r', options);
-        gridStore.open(function (err) {
+        gridStore.open(function (err, gsObject) {
             if (err) {
                 return reject(err);
             }
@@ -50,7 +50,13 @@ exports.readFile = function (fileId, options) {
                     if (err) {
                         return reject(err);
                     }
-                    resolve(result);
+                    resolve({
+                        fileId: gsObject.fileId,
+                        filename: gsObject.filename,
+                        mimetype: gsObject.contentType,
+                        content: result,
+                        md5: gsObject.internalMd5
+                    });
                 });
             });
         });

@@ -452,12 +452,13 @@ function getAttachment(attachmentId) {
         return KindModel.findOne({
             _id: self._id,
             '_at._id': attachmentId
-        }, '_at.$.fileId').exec().then(retrieveAttachment);
-    });
-}
-
-function retrieveAttachment(doc) {
-    return mongo.readFile(doc._at[0].fileId, {
-        root: 'attachments'
+        }, '_at.$.fileId').exec().then(function (doc) {
+            if (!doc) {
+                throw new Error('attachment with id ' + attachmentId + ' not found for document with id ' + self._id);
+            }
+            return mongo.readFile(doc._at[0].fileId, {
+                root: 'attachments'
+            });
+        });
     });
 }
