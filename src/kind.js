@@ -285,7 +285,11 @@ function removeEntryChildrenAndAttachments(entry, cb) {
 }
 
 function removeEntryAttachment(att, cb) {
-    mongo.removeFile(att.fileId, 'attachments', cb);
+    mongo.removeFile(att.fileId, 'attachments').then(function (res) {
+        cb(null, res);
+    }, function (err) {
+        cb(err);
+    });
 }
 
 var getChildrenOptions = {
@@ -417,8 +421,8 @@ function createAttachment(attachment) {
 
 function removeAttachment(attachmentId) {
     var self = this;
-    return new Promise(function (resolve, reject) {
-        exports.getSync(self.getKind()).findOneAndUpdate({
+    return exports.get(self.getKind()).then(function (KindModel) {
+        return KindModel.findOneAndUpdate({
             _id: self._id,
             '_at._id': attachmentId
         }, {
@@ -429,17 +433,14 @@ function removeAttachment(attachmentId) {
             }
         }, {
             'new': false // Important because we need to retrieve the fileId
-        }, function (err, res) {
-            if (err) {
-                return reject(err);
-            }
+        }).exec().then(function (res) {
             if (!res) { // Attachment not found
-                return reject(new Error('attachment with id ' + attachmentId.toString() + ' not found'));
+                throw new Error('attachment with id ' + attachmentId.toString() + ' not found');
             }
-            resolve(null); // File can be removed from GridFS later
+            // File can be removed from GridFS later,
             for (var i = 0, ii = res._at.length; i < ii; i++) {
                 if (res._at[i]._id.toString() === attachmentId.toString()) {
-                    mongo.removeFile(res._at[i].fileId, 'attachments', util.noop);
+                    mongo.removeFile(res._at[i].fileId, 'attachments');
                 }
             }
         });

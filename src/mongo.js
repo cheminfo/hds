@@ -90,9 +90,16 @@ exports.readStream = function (options, callback) {
     });
 };
 
-exports.removeFile = function (fileId, collection, callback) {
-    gridStream.remove({
-        _id: fileId,
-        root: collection
-    }, callback);
+exports.removeFile = function (fileId, collection) {
+    return new Promise(function (resolve, reject) {
+        gridStream.remove({
+            _id: fileId,
+            root: collection
+        }, function (err, res) {
+            if (err) {
+                return reject(err);
+            }
+            resolve(res);
+        });
+    });
 };
