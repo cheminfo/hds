@@ -448,19 +448,16 @@ function removeAttachment(attachmentId) {
 
 function getAttachment(attachmentId) {
     var self = this;
-    return new Promise(function (resolve, reject) {
-        exports.getSync(self.getKind()).findOne({
+    return exports.get(self.getKind()).then(function (KindModel) {
+        return KindModel.findOne({
             _id: self._id,
             '_at._id': attachmentId
-        }, '_at.$.fileId', function (err, res) {
-            if (err) {
-                return reject(err);
-            }
-            mongo.readFile(res._at[0].fileId, {
-                root: 'attachments'
-            }, function (err, res) {
-                err ? reject(err) : resolve(res);
-            });
-        });
+        }, '_at.$.fileId').exec().then(retrieveAttachment);
+    });
+}
+
+function retrieveAttachment(doc) {
+    return mongo.readFile(doc._at[0].fileId, {
+        root: 'attachments'
     });
 }

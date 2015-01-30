@@ -38,13 +38,21 @@ exports.writeFile = function (content, filename, options) {
     });
 };
 
-exports.readFile = function (fileId, options, callback) {
-    var gridStore = new GridStore(mongoDB, ObjectID(fileId), 'r', options);
-    gridStore.open(function (err) {
-        if (err)
-            return callback(err);
-        gridStore.seek(0, function () {
-            gridStore.read(callback);
+exports.readFile = function (fileId, options) {
+    return new Promise(function (resolve, reject) {
+        var gridStore = new GridStore(mongoDB, ObjectID(fileId), 'r', options);
+        gridStore.open(function (err) {
+            if (err) {
+                return reject(err);
+            }
+            gridStore.seek(0, function () {
+                gridStore.read(function (err, result) {
+                    if (err) {
+                        return reject(err);
+                    }
+                    resolve(result);
+                });
+            });
         });
     });
 };
