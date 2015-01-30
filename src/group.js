@@ -142,7 +142,7 @@ exports.create = function createGroup(name, user) {
                     group: name,
                     target: user,
                     rights: [
-                        { right: Rights.ADMIN }
+                        {right: Rights.ADMIN}
                     ]
                 });
                 newRight.save(function (err) {

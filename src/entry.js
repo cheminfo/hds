@@ -1,7 +1,6 @@
 'use strict';
 
 var Kind = require('./kind'),
-    util = require('./util'),
     Promise = require('native-or-bluebird'),
     extend = require('extend'),
     mongoose = require('mongoose'),
@@ -391,7 +390,8 @@ exports.insertTree = function (tree, options) {
             });
 
             // TODO hack mongoose bug !
-            setTimeout(util.noop, 0);
+            setTimeout(function () {
+            }, 0);
 
         }, reject);
 

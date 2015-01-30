@@ -308,7 +308,7 @@ function combineQueryAnd(target, query, logs) {
             var targetModel = Kind.getSync(target);
             targetModel.aggregate([
                 {
-                    $match: { $and: results }
+                    $match: {$and: results}
                 },
                 {
                     $project: {
@@ -339,7 +339,7 @@ function combineQueryOr(target, query, logs) {
             var targetModel = Kind.getSync(target);
             targetModel.aggregate([
                 {
-                    $match: { $or: results }
+                    $match: {$or: results}
                 },
                 {
                     $project: {

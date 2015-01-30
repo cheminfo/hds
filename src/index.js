@@ -23,7 +23,7 @@ exports.init = function initHds(options) {
     options = extend(true, {}, defaultOptions, options);
 
     return new Promise(function (resolve, reject) {
-        if(typeof options.database === 'string') {
+        if (typeof options.database === 'string') {
             mongoose.connect(options.database);
         } else {
             var mongoOptions = {};

@@ -6,8 +6,7 @@ var extend = require('extend'),
     mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     ObjectId = mongoose.Schema.ObjectId,
-    mongo = require('./mongo'),
-    util = require('./util');
+    mongo = require('./mongo');
 
 var dbRefSchema = {
     kind: {
@@ -328,7 +327,7 @@ function getChildren(options) {
                     return reject(new Error('Entry with id ' + self._id + ' does not exist anymore'));
                 }
                 if (!options.groupKind) { // Put all children in the same array
-                    async.map(res._ch, function(el, callback){
+                    async.map(res._ch, function (el, callback) {
                         getChild(el).then(function (ch) {
                             callback(null, ch);
                         }, function (err) {
