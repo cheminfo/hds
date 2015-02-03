@@ -50,6 +50,7 @@ exports.readFile = function (fileId, options) {
                         filename: gsObject.filename,
                         mimetype: gsObject.contentType,
                         content: result,
+                        length: result.length,
                         md5: gsObject.internalMd5
                     });
                 });
@@ -77,10 +78,12 @@ exports.readStream = function (fileId, options) {
             }
             var stream = gsObject.stream();
             resolve({
-                stream: stream,
+                fileId: gsObject.fileId,
                 filename: gsObject.filename,
-                contentType: gsObject.contentType,
-                length: gsObject.length
+                mimetype: gsObject.contentType,
+                stream: stream,
+                length: gsObject.length,
+                md5: gsObject.internalMd5
             });
         });
     });
