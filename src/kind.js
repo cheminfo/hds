@@ -18,18 +18,28 @@ var dbRefSchema = {
     _id: false
 };
 
-var attachmentSchema = {
+var fileSchema = {
     _id: ObjectId,
-    fileId: ObjectId,
-    name: 'string',
-    mime: 'string',
-    md5: 'string'
+    path: String
 };
+
+var defaultFileOptions = {
+    filename: 'untitled.txt',
+    mimetype: 'text/plain',
+    encoding: 'utf-8'
+};
+
+function File(options) {
+    this.options = extend({}, defaultFileOptions, options);
+}
+
+exports.File = File;
+exports.DefaultFile = new File();
 
 var baseDefinition = {
     _an: [dbRefSchema],         // Ancestors array
     _ch: [dbRefSchema],         // Children array
-    _at: [attachmentSchema],    // Attachments array
+    _at: [fileSchema],          // Files array - Needed for security and easy removal
     _dc: Date,                  // Date of creation
     _dm: Date,                  // Date of modification
     _gr: [String]               // Groups
@@ -94,11 +104,7 @@ exports.create = function createKind(name, definition, options) {
         throw new Error('Kind definition has to be an object');
     }
 
-    for (var i in definition) {
-        if (i[0] === '_') {
-            throw new Error('Kind definition cannot contain fields that begin with a "_". Found: ' + i);
-        }
-    }
+    var fileFields = validateSchema(definition);
 
     var thisDef = extend({}, baseDefinition, definition);
     var thisOptions = extend({}, baseOptions);
@@ -108,7 +114,7 @@ exports.create = function createKind(name, definition, options) {
     options = options || {};
 
     var hookName, preHookName, postHookName;
-    for (i = 0; i < hooks.length; i++) {
+    for (var i = 0; i < hooks.length; i++) {
         hookName = hooks[i];
         preHookName = 'pre' + hookName;
         if (options[preHookName] && typeof options[preHookName] === 'function') {
@@ -124,9 +130,7 @@ exports.create = function createKind(name, definition, options) {
         if (!this._dc) {
             this._dc = this._id.getTimestamp();
         }
-
         this._dm = this.isNew ? this._dc : new Date();
-
         next();
     });
 
@@ -139,6 +143,10 @@ exports.create = function createKind(name, definition, options) {
         return name;
     };
 
+    thisSchema.methods.getPossibleFiles = function () {
+        return fileFields;
+    };
+
     thisSchema.virtual('owner').set(function (v) {
         this._gr[0] = v; // TODO check
     }).get(function () {
@@ -149,16 +157,138 @@ exports.create = function createKind(name, definition, options) {
     thisSchema.methods.getChildren = getChildren;
     //thisSchema.methods.setParent = setParent;
 
-    thisSchema.methods.createAttachment = createAttachment;
-    thisSchema.methods.removeAttachment = removeAttachment;
-    thisSchema.methods.getAttachment = getAttachment;
+    //thisSchema.methods.createAttachment = createAttachment;
+    //thisSchema.methods.removeAttachment = removeAttachment;
+    thisSchema.methods.getFile = getFile;
 
+    thisSchema.pre('validate', preValidateFiles);
 
     thisSchema.pre('save', preSaveChild);
     thisSchema.pre('remove', preRemove);
 
     return kinds[name] = mongoose.model('kind_' + name, thisSchema, 'kind_' + name);
 };
+
+function preValidateFiles(next) {
+    this.filesToHandle = [];
+    var files = this.getPossibleFiles();
+    for (var i = 0; i < files.length; i++) {
+        preValidateFile(files[i].file, files[i].jpath, [], this, this);
+    }
+    if (this.filesToHandle.length) {
+        Promise.all(this.filesToHandle.map(function (value) {
+            return value();
+        })).then(function () {
+            next();
+        }, next);
+    } else {
+        next();
+    }
+}
+
+function preValidateFile(file, jpath, currentJpath, doc, self) {
+    currentJpath = currentJpath.slice();
+    var len = jpath.length;
+    for (var j = 0; j < len; j++) {
+        if (jpath[j] === '$') {
+            var aJpath = jpath.slice(j+1);
+            for (var k = 0; k < doc.length; k++) {
+                var aCurrenJpath = currentJpath.slice();
+                aCurrenJpath.push(k);
+                preValidateFile(file, aJpath, aCurrenJpath, doc[k], self);
+            }
+            return;
+        } else {
+            doc = doc[jpath[j]];
+            currentJpath.push(jpath[j]);
+        }
+    }
+    checkFileStatus(doc, currentJpath, file, self);
+}
+
+function checkFileStatus(doc, currentJpath, file, self) {
+    if (doc) {
+        if (doc._id) {
+            // file is already there
+            // should not need a check, users are not supposed to change manually
+        } else { // new file or replacement
+            removeFile(currentJpath, self);
+            addFile(doc, currentJpath, file, self);
+        }
+    } else {
+        removeFile(currentJpath, self);
+    }
+}
+
+function removeFile(jpath, self) {
+    var strjpath = jpath.join('.');
+    var files = self._at;
+    for(var i = 0; i < files.length; i++) {
+        if (files[i].path === strjpath) {
+            var file = files.splice(i, 1)[0];
+            self.filesToHandle.push(function () {
+                return mongo.removeFile(file._id, {root: 'files'});
+            });
+            return;
+        }
+    }
+}
+
+function addFile(doc, jpath, file, self) {
+    if (typeof doc === 'string') {
+        doc = {value: doc};
+    }
+    doc = extend({}, file, {value: ''}, doc);
+    self.filesToHandle.push(function () {
+        return mongo.writeFile(doc.value, doc.filename, {
+            root: 'files',
+            encoding: doc.encoding,
+            contentType: doc.mimetype
+        }).then(function (newFile) {
+            self._at.push({_id: newFile._id, path: jpath.join('.')});
+            for (var i = 0; i < (jpath.length - 1); i++) {
+                self = self[jpath[i]];
+            }
+            self[jpath[i]] = {_id:newFile._id};
+        });
+    });
+}
+
+function validateSchema(schema, fileFields, jpath) {
+    fileFields = fileFields || [];
+    jpath = jpath || [];
+    for (var i in schema) {
+        if (i[0] === '_' || i[0] === '$') {
+            throw new Error('Kind definition cannot contain fields that begin with a "_" or a "$". Found: ' + i);
+        }
+        if (i.indexOf('.') >= 0) {
+            throw new Error('Kind definition cannot contain fields that contain a ".". Found: ' + i);
+        }
+        var el = schema[i];
+        var elJpath = jpath.slice();
+        elJpath.push(i);
+        var arr;
+        if (Array.isArray(el)) {
+            elJpath.push('$');
+            el = el[0];
+            arr = true;
+        }
+        if (el instanceof File) {
+            if (arr) {
+                schema[i][0] = {};
+            } else {
+                schema[i] = {};
+            }
+            fileFields.push({
+                jpath: elJpath,
+                file: el.options
+            });
+        } else if (typeof el === 'object') {
+            validateSchema(el, fileFields, elJpath);
+        }
+    }
+    return fileFields;
+}
 
 function createChild(kind, value) {
     var self = this;
@@ -234,25 +364,25 @@ function preRemove(next) {
                     if (err) {
                         return next(err);
                     }
-                    async.each(res._ch, removeEntryChildrenAndAttachments, next);
+                    async.each(res._ch, removeEntryChildrenAndFiles, next);
                 });
             });
         } else {
-            async.each(res._ch, removeEntryChildrenAndAttachments, next);
+            async.each(res._ch, removeEntryChildrenAndFiles, next);
         }
     });
 }
 
-function removeEntryChildrenAndAttachments(entry, cb) {
+function removeEntryChildrenAndFiles(entry, cb) {
     exports.get(entry.kind, function (err, entryModel) {
         if (err) {
             return cb(err);
         }
         var childrenRemoved = false,
-            attachmentsRemoved = false;
+            filesRemoved = false;
 
         function checkFinish() {
-            if (childrenRemoved && attachmentsRemoved) {
+            if (childrenRemoved && filesRemoved) {
                 cb();
             }
         }
@@ -262,18 +392,18 @@ function removeEntryChildrenAndAttachments(entry, cb) {
                 return cb(err);
             }
             if (result) {
-                async.each(result._ch, removeEntryChildrenAndAttachments, function (err) {
+                async.each(result._ch, removeEntryChildrenAndFiles, function (err) {
                     if (err) {
                         return cb(err);
                     }
                     childrenRemoved = true;
                     checkFinish();
                 });
-                async.each(result._at, removeEntryAttachment, function (err) {
+                async.each(result._at, removeEntryFile, function (err) {
                     if (err) {
                         return cb(err);
                     }
-                    attachmentsRemoved = true;
+                    filesRemoved = true;
                     checkFinish();
                 });
             } else {
@@ -283,9 +413,9 @@ function removeEntryChildrenAndAttachments(entry, cb) {
     });
 }
 
-function removeEntryAttachment(att, cb) {
-    mongo.removeFile(att.fileId, {
-        root:'attachments'
+function removeEntryFile(att, cb) {
+    mongo.removeFile(att._id, {
+        root:'files'
     }).then(function (res) {
         cb(null, res);
     }, function (err) {
@@ -393,7 +523,7 @@ function getChild(child) {
 }
  */
 
-function createAttachment(attachment) {
+/*function createAttachment(attachment) {
     var self = this;
     if (self.isNew) {
         throw new Error('Cannot call method createAttachment of a new unsaved entry');
@@ -418,9 +548,9 @@ function createAttachment(attachment) {
             return attachment;
         });
     });
-}
+}*/
 
-function removeAttachment(attachmentId) {
+/*function removeAttachment(attachmentId) {
     var self = this;
     return exports.get(self.getKind()).then(function (KindModel) {
         return KindModel.findOneAndUpdate({
@@ -448,25 +578,28 @@ function removeAttachment(attachmentId) {
             }
         });
     });
-}
+}*/
 
-function getAttachment(attachmentId, stream) {
+function getFile(fileOrId, stream) {
     var self = this;
+    if (typeof fileOrId === 'object') {
+        fileOrId = fileOrId._id;
+    }
     return exports.get(self.getKind()).then(function (KindModel) {
         return KindModel.findOne({
             _id: self._id,
-            '_at._id': attachmentId
-        }, '_at.$.fileId').exec().then(function (doc) {
+            '_at._id': fileOrId
+        }, '_at.$._id').exec().then(function (doc) {
             if (!doc) {
-                throw new Error('attachment with id ' + attachmentId + ' not found for document with id ' + self._id);
+                throw new Error('attachment with id ' + fileOrId + ' not found for document with id ' + self._id);
             }
             var opts = {
-                root: 'attachments'
+                root: 'files'
             };
             if (stream) {
-                return mongo.readStream(doc._at[0].fileId, opts);
+                return mongo.readStream(doc._at[0]._id, opts);
             } else {
-                return mongo.readFile(doc._at[0].fileId, opts);
+                return mongo.readFile(doc._at[0]._id, opts);
             }
         });
     });
