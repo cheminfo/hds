@@ -450,7 +450,7 @@ function removeAttachment(attachmentId) {
     });
 }
 
-function getAttachment(attachmentId) {
+function getAttachment(attachmentId, stream) {
     var self = this;
     return exports.get(self.getKind()).then(function (KindModel) {
         return KindModel.findOne({
@@ -460,9 +460,14 @@ function getAttachment(attachmentId) {
             if (!doc) {
                 throw new Error('attachment with id ' + attachmentId + ' not found for document with id ' + self._id);
             }
-            return mongo.readFile(doc._at[0].fileId, {
+            var opts = {
                 root: 'attachments'
-            });
+            };
+            if (stream) {
+                return mongo.readStream(doc._at[0].fileId, opts);
+            } else {
+                return mongo.readFile(doc._at[0].fileId, opts);
+            }
         });
     });
 }
