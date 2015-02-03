@@ -4,7 +4,7 @@
   "description": "Hierarchical data store",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --require should --reporter mocha-better-spec-reporter --recursive"
   },
   "repository": "cheminfo/hds",
   "keywords": [
@@ -28,5 +28,11 @@
     "mongoose": "4.0.0-rc1",
     "native-or-bluebird": "^1.1.2",
     "validator": "^3.27.0"
+  },
+  "devDependencies": {
+    "bluebird": "^2.9.6",
+    "mocha": "^2.1.0",
+    "mocha-better-spec-reporter": "^2.0.1",
+    "should": "^4.6.3"
   }
 }
