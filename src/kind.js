@@ -284,7 +284,9 @@ function removeEntryChildrenAndAttachments(entry, cb) {
 }
 
 function removeEntryAttachment(att, cb) {
-    mongo.removeFile(att.fileId, 'attachments').then(function (res) {
+    mongo.removeFile(att.fileId, {
+        root:'attachments'
+    }).then(function (res) {
         cb(null, res);
     }, function (err) {
         cb(err);
@@ -439,7 +441,9 @@ function removeAttachment(attachmentId) {
             // File can be removed from GridFS later,
             for (var i = 0, ii = res._at.length; i < ii; i++) {
                 if (res._at[i]._id.toString() === attachmentId.toString()) {
-                    mongo.removeFile(res._at[i].fileId, 'attachments');
+                    mongo.removeFile(res._at[i].fileId, {
+                        root: 'attachments'
+                    });
                 }
             }
         });

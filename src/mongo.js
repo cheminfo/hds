@@ -3,17 +3,12 @@
 var mongoose = require('mongoose'),
     mongo = mongoose.mongo,
     GridStore = mongo.GridStore,
-    ObjectID = mongo.ObjectID,
-    GridStream = require('gridfs-stream');
-
-GridStream.mongo = mongo;
+    ObjectID = mongo.ObjectID;
 
 var mongoDB; // MongoDB database instance, needed for gridFS;
-var gridStream; // GridFS-Stream instance
 
 exports._setMongo = function (db) {
     mongoDB = db;
-    gridStream = GridStream(db);
 };
 
 exports.writeFile = function (content, filename, options) {
@@ -63,50 +58,37 @@ exports.readFile = function (fileId, options) {
     });
 };
 
-exports.writeStream = function (stream, options) {
+exports.writeStream = function (stream, filename, options) {
     return new Promise(function (resolve, reject) {
-        var writeStream = gridStream.createWriteStream(options);
+        var gridStore = new GridStore(mongoDB, new ObjectID(), filename, 'w', options);
+        var writeStream = gridStore.stream();
+        writeStream.on('close', resolve);
+        writeStream.on('error', reject);
         stream.pipe(writeStream);
-        writeStream.on('close', function (res) {
-            resolve(res);
-        });
-        writeStream.on('error', function (err) {
-            reject(err);
-        });
     });
 };
 
-exports.readStream = function (options) {
+exports.readStream = function (fileId, options) {
     return new Promise(function (resolve, reject) {
-        var id = options._id ? ObjectID(options._id) : options.name;
-        if (!id) {
-            return reject(new Error('mongo.readStream: need option _id or name'));
-        }
-        var gs = new GridStore(mongoDB, id, 'r', {
-            root: options.root
-        });
-        gs.open(function (err, gs) {
+        var gridStore = new GridStore(mongoDB, ObjectID(fileId), 'r', options);
+        gridStore.open(function (err, gsObject) {
             if (err) {
                 return reject(err);
             }
-            var stream = new PassThrough();
-            gs.stream().pipe(stream);
+            var stream = gsObject.stream();
             resolve({
                 stream: stream,
-                filename: gs.filename,
-                contentType: gs.contentType,
-                length: gs.length
+                filename: gsObject.filename,
+                contentType: gsObject.contentType,
+                length: gsObject.length
             });
         });
     });
 };
 
-exports.removeFile = function (fileId, collection) {
+exports.removeFile = function (fileId, options) {
     return new Promise(function (resolve, reject) {
-        gridStream.remove({
-            _id: fileId,
-            root: collection
-        }, function (err, res) {
+        GridStore.unlink(mongoDB, ObjectID(fileId), options, function (err, res) {
             if (err) {
                 return reject(err);
             }
