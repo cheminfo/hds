@@ -45,7 +45,7 @@ A chemical company wants to store its catalog in a hierarchical way.
 
 ### 1. Requirements
 
-**TODO talk about promises and node 0.11**
+**TODO talk about promises and node 0.12**
 
 ### 2. Initialization
 
@@ -110,16 +110,7 @@ entry1.save().then(function () {
 });
 ```
 
-Here we created one catalog entry with two iupac names as children. Note that the parent entry must be saved before creating a child or the creatChild method will throw.
-We can also add attachments to saved entries :
-
-```js
-entry1.createAttachment({
-  content: fs.readFileSync('/my/entries/ethanol.pdf'),
-  contentType: 'application/pdf',
-  filename: 'MSDS.pdf'
-}).then(...);
-```
+Here we created one catalog entry with two iupac names as children. Note that the parent entry must be saved before creating a child or the createChild method will throw.
 
 ## Look for data
 
