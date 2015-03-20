@@ -243,7 +243,7 @@ function addFile(doc, jpath, file, self) {
         return mongo.writeFile(doc.value, doc.filename, {
             root: 'files',
             encoding: doc.encoding,
-            contentType: doc.mimetype
+            content_type: doc.mimetype
         }).then(function (newFile) {
             self._at.push({_id: newFile._id, path: jpath.join('.')});
             for (var i = 0; i < (jpath.length - 1); i++) {
