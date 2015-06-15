@@ -150,7 +150,8 @@ exports.create = function createKind(name, definition, options) {
     thisSchema.virtual('owner').set(function (v) {
         this._gr[0] = v; // TODO check
     }).get(function () {
-        return this._gr[0];
+        if(this._gr){return this._gr[0];}
+        else{return;}
     });
 
     thisSchema.methods.createChild = createChild;
