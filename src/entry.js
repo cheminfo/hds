@@ -39,7 +39,7 @@ exports.create = function createEntry(kind, value, options) {
 exports.batch = function (data, options) {
     if (Array.isArray(data)) {
         return Promise.all(data.map(function (dataVal) {
-            return exports.batch(dataVal, options);
+            exports.batch(dataVal, options).then(function(){return;});
         }));
     } else {
         return new Promise(function (resolve, reject) {
