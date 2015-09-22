@@ -450,3 +450,8 @@ exports.find = function findEntries(kind, conditions, fields, options, callback)
     var kindModel = Kind.getSync(kind);
     return kindModel.find(conditions, fields, options, callback);
 };
+
+exports.update = function updateEntry(kind, conditions, fields, options, callback) {
+    var kindModel = Kind.getSync(kind);
+    return kindModel.update(conditions, fields, options, callback);
+};
