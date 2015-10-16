@@ -30,7 +30,7 @@
     "validator": "^3.27.0"
   },
   "devDependencies": {
-    "bluebird": "^2.9.6",
+    "bluebird": "^2.10.2",
     "mocha": "^2.1.0",
     "mocha-better-spec-reporter": "^2.0.1",
     "should": "^4.6.3"
