@@ -169,7 +169,35 @@ exports.create = function createKind(name, definition, options) {
     try {
         var definitionStr = JSON.stringify(definition, function(key, val) {
             if (typeof val === 'function') {
-                return val + ''; // implicitly `toString` it
+                switch (val) {
+                    case String:
+                        return 'string';
+                        break;
+                    case Number:
+                        return 'number';
+                        break;
+                    case Date:
+                        return 'date';
+                        break;
+                    case Boolean:
+                        return 'boolean';
+                        break;
+                    case Buffer:
+                        return 'buffer';
+                        break;
+                    case ObjectId:
+                        return 'objectId';
+                        break;
+                    case Mixed:
+                        return 'mixed';
+                        break;
+                    case Array:
+                        return 'array';
+                        break;
+                    default:
+                        return val + '';
+                        break;
+                }
             }
             return val;
         });
