@@ -1,3 +1,5 @@
 .idea
-node_modules
+demo
+doc
+test
 .DS_Store
