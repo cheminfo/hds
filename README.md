@@ -22,8 +22,8 @@ This project is currently in development and therefore its stability is not guar
 [npm-url]: https://www.npmjs.com/package/hds
 [travis-image]: https://img.shields.io/travis/cheminfo/hds/master.svg?style=flat-square
 [travis-url]: https://travis-ci.org/cheminfo/hds
-[coveralls-image]: https://img.shields.io/coveralls/cheminfo-js/chemcalc-extended.svg?style=flat-square
-[coveralls-url]: https://coveralls.io/github/cheminfo-js/chemcalc-extended
+[coveralls-image]: https://img.shields.io/coveralls/cheminfo/hds.svg?style=flat-square
+[coveralls-url]: https://coveralls.io/github/cheminfo/hds
 [david-image]: https://img.shields.io/david/cheminfo/hds.svg?style=flat-square
 [david-url]: https://david-dm.org/cheminfo/hds
 [download-image]: https://img.shields.io/npm/dm/hds.svg?style=flat-square
