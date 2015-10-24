@@ -396,6 +396,9 @@ function preRemove(next) {
         if (err) {
             return next(err);
         }
+
+        mongoose.connection.collection('kind').remove({name:ref.kind});
+
         // First we have to remove the reference from the parent
         if (res._an.length) {
             var parent = res._an[res._an.length - 1];
