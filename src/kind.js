@@ -216,6 +216,10 @@ exports.create = function createKind(name, definition, options) {
     return kinds[name] = mongoose.model('kind_' + name, thisSchema, 'kind_' + name);
 };
 
+exports.getSchema = function (name) {
+    return mongoose.connection.collection('kind').findOne({name:name});
+};
+
 function preValidateFiles(next) {
     this.filesToHandle = [];
     var files = this.getPossibleFiles();
