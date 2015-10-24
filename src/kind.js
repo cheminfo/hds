@@ -81,6 +81,10 @@ exports.get = function getKindModel(name) {
     }
 };
 
+exports.getList = function () {
+    return mongoose.connection.collection('kind').find();
+};
+
 exports.getSync = function getKindModelSync(name) {
     if (!kinds[name]) {
         throw new Error('Kind ' + name + ' is not loaded');
