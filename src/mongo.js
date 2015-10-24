@@ -1,9 +1,9 @@
 'use strict';
 
-var mongoose = require('mongoose'),
-    mongo = mongoose.mongo,
-    GridStore = mongo.GridStore,
-    ObjectID = mongo.ObjectID;
+const mongoose = require('mongoose');
+const mongo = mongoose.mongo;
+const GridStore = mongo.GridStore;
+const ObjectID = mongo.ObjectID;
 
 var mongoDB; // MongoDB database instance, needed for gridFS;
 

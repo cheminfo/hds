@@ -1,8 +1,7 @@
 'use strict';
 
-var Promise = require('native-or-bluebird'),
-    Kind = require('./kind'),
-    extend = require('extend');
+const Kind = require('./kind');
+const extend = require('extend');
 
 var customOperators = {};
 

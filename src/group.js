@@ -1,7 +1,6 @@
-var mongoose = require('mongoose'),
-    validator = require('validator'),
-    async = require('async'),
-    Promise = require('native-or-bluebird');
+const mongoose = require('mongoose');
+const validator = require('validator');
+const async = require('async');
 
 var Rights = {
     READ: 1,

@@ -1,10 +1,9 @@
 'use strict';
 
-var extend = require('extend'),
-    mongoose = require('mongoose'),
-    debug = require('debug')('hds:init'),
-    mongo = require('./mongo'),
-    Promise = require('native-or-bluebird');
+const extend = require('extend');
+const mongoose = require('mongoose');
+const debug = require('debug')('hds:init');
+const mongo = require('./mongo');
 
 var defaultOptions = {
     database: {

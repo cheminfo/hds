@@ -1,12 +1,11 @@
 'use strict';
 
-var extend = require('extend'),
-    async = require('async'),
-    Promise = require('native-or-bluebird'),
-    mongoose = require('mongoose'),
-    Schema = mongoose.Schema,
-    ObjectId = mongoose.Schema.ObjectId,
-    mongo = require('./mongo');
+const extend = require('extend');
+const async = require('async');
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+const ObjectId = mongoose.Schema.ObjectId;
+const mongo = require('./mongo');
 
 var dbRefSchema = {
     kind: {

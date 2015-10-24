@@ -1,11 +1,10 @@
 'use strict';
 
-var Kind = require('./kind'),
-    Promise = require('native-or-bluebird'),
-    extend = require('extend'),
-    mongoose = require('mongoose'),
-    ObjectID = mongoose.mongo.ObjectID,
-    async = require('async');
+const Kind = require('./kind');
+const extend = require('extend');
+const mongoose = require('mongoose');
+const ObjectID = mongoose.mongo.ObjectID;
+const async = require('async');
 
 exports.create = function createEntry(kind, value, options) {
 
