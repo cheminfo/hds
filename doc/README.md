@@ -13,7 +13,7 @@ There is also a system to manage groups and roles for every piece of information
 
 * [mongoose](http://mongoosejs.com/) - Main library used for most of the interactions with mongoDB
 * [Mongo DB](https://github.com/mongodb/node-mongodb-native/) - The native Node JS driver is used to manage files in GridFS
-* ES6 promises - Asynchronous code uses promises. Native ones if node's version is high enough or [Bluebird](https://github.com/petkaantonov/bluebird/)
+* ES6 promises - Asynchronous code uses promises.
 
 ## How to use it ?
 
