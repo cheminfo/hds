@@ -1,6 +1,6 @@
 {
   "name": "hds",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Hierarchical data store",
   "main": "src/index.js",
   "scripts": {
@@ -16,7 +16,9 @@
     "name": "Michaël Zasso",
     "email": "michael.zasso@epfl.ch"
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/cheminfo/hds/issues"
