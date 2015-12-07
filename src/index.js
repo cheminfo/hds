@@ -11,7 +11,7 @@ var defaultOptions = {
         port: 27017,
         name: 'hds',
         user: null,
-        password: null
+        pass: null
     }
 };
 
@@ -27,9 +27,9 @@ exports.init = function initHds(options) {
         } else {
             var mongoOptions = {};
             var dbOptions = options.database;
-            if (dbOptions.user && dbOptions.password) {
+            if (dbOptions.user && dbOptions.pass) {
                 mongoOptions.user = dbOptions.user;
-                mongoOptions.password = dbOptions.password;
+                mongoOptions.pass = dbOptions.pass;
             }
             mongoose.connect(dbOptions.host, dbOptions.name, dbOptions.port, mongoOptions);
         }
