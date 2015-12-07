@@ -16,6 +16,7 @@
     "name": "Michaël Zasso",
     "email": "michael.zasso@epfl.ch"
   },
+  "files": ["src"],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/cheminfo/hds/issues"
