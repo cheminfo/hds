@@ -80,6 +80,10 @@ exports.get = function getKindModel(name) {
     }
 };
 
+exports.getList = function () {
+    return mongoose.connection.collection('kind').find();
+};
+
 exports.getSync = function getKindModelSync(name) {
     if (!kinds[name]) {
         throw new Error('Kind ' + name + ' is not loaded');
@@ -165,7 +169,54 @@ exports.create = function createKind(name, definition, options) {
     thisSchema.pre('save', preSaveChild);
     thisSchema.pre('remove', preRemove);
 
+    try {
+        var definitionStr = JSON.stringify(definition, function(key, val) {
+            if (typeof val === 'function') {
+                switch (val) {
+                    case String:
+                        return 'string';
+                        break;
+                    case Number:
+                        return 'number';
+                        break;
+                    case Date:
+                        return 'date';
+                        break;
+                    case Boolean:
+                        return 'boolean';
+                        break;
+                    case Buffer:
+                        return 'buffer';
+                        break;
+                    case ObjectId:
+                        return 'objectId';
+                        break;
+                    case Mixed:
+                        return 'mixed';
+                        break;
+                    case Array:
+                        return 'array';
+                        break;
+                    default:
+                        return val + '';
+                        break;
+                }
+            }
+            return val;
+        });
+
+        mongoose.connection.collection('kind').insert({name:name, schema: definitionStr});
+    }
+    catch(err) {
+        console.log('Insert kind:', err);
+        throw err;
+    }
+
     return kinds[name] = mongoose.model('kind_' + name, thisSchema, 'kind_' + name);
+};
+
+exports.getSchema = function (name) {
+    return mongoose.connection.collection('kind').findOne({name:name});
 };
 
 function preValidateFiles(next) {
@@ -348,6 +399,9 @@ function preRemove(next) {
         if (err) {
             return next(err);
         }
+
+        mongoose.connection.collection('kind').remove({name:ref.kind});
+
         // First we have to remove the reference from the parent
         if (res._an.length) {
             var parent = res._an[res._an.length - 1];
@@ -523,61 +577,61 @@ function getChild(child) {
  */
 
 /*function createAttachment(attachment) {
-    var self = this;
-    if (self.isNew) {
-        throw new Error('Cannot call method createAttachment of a new unsaved entry');
-    }
-    var data = new Buffer(attachment.value, attachment.encoding || 'utf-8');
-    return mongo.writeFile(data, attachment.filename, {
-        root: 'attachments',
-        content_type: attachment.mimetype
-    }).then(function (fileData) {
-        var attachment = {
-            _id: fileData._id,
-            fileId: fileData._id,
-            name: fileData.filename,
-            mime: fileData.contentType,
-            md5: fileData.md5
-        };
-        return exports.getSync(self.getKind()).findByIdAndUpdate(self._id, {
-            $push: {
-                _at: attachment
-            }
-        }).exec().then(function () {
-            return attachment;
-        });
-    });
-}*/
+ var self = this;
+ if (self.isNew) {
+ throw new Error('Cannot call method createAttachment of a new unsaved entry');
+ }
+ var data = new Buffer(attachment.value, attachment.encoding || 'utf-8');
+ return mongo.writeFile(data, attachment.filename, {
+ root: 'attachments',
+ content_type: attachment.mimetype
+ }).then(function (fileData) {
+ var attachment = {
+ _id: fileData._id,
+ fileId: fileData._id,
+ name: fileData.filename,
+ mime: fileData.contentType,
+ md5: fileData.md5
+ };
+ return exports.getSync(self.getKind()).findByIdAndUpdate(self._id, {
+ $push: {
+ _at: attachment
+ }
+ }).exec().then(function () {
+ return attachment;
+ });
+ });
+ }*/
 
 /*function removeAttachment(attachmentId) {
-    var self = this;
-    return exports.get(self.getKind()).then(function (KindModel) {
-        return KindModel.findOneAndUpdate({
-            _id: self._id,
-            '_at._id': attachmentId
-        }, {
-            $pull: {
-                _at: {
-                    _id: attachmentId
-                }
-            }
-        }, {
-            'new': false // Important because we need to retrieve the fileId
-        }).exec().then(function (res) {
-            if (!res) { // Attachment not found
-                throw new Error('attachment with id ' + attachmentId.toString() + ' not found');
-            }
-            // File can be removed from GridFS later,
-            for (var i = 0, ii = res._at.length; i < ii; i++) {
-                if (res._at[i]._id.toString() === attachmentId.toString()) {
-                    mongo.removeFile(res._at[i].fileId, {
-                        root: 'attachments'
-                    });
-                }
-            }
-        });
-    });
-}*/
+ var self = this;
+ return exports.get(self.getKind()).then(function (KindModel) {
+ return KindModel.findOneAndUpdate({
+ _id: self._id,
+ '_at._id': attachmentId
+ }, {
+ $pull: {
+ _at: {
+ _id: attachmentId
+ }
+ }
+ }, {
+ 'new': false // Important because we need to retrieve the fileId
+ }).exec().then(function (res) {
+ if (!res) { // Attachment not found
+ throw new Error('attachment with id ' + attachmentId.toString() + ' not found');
+ }
+ // File can be removed from GridFS later,
+ for (var i = 0, ii = res._at.length; i < ii; i++) {
+ if (res._at[i]._id.toString() === attachmentId.toString()) {
+ mongo.removeFile(res._at[i].fileId, {
+ root: 'attachments'
+ });
+ }
+ }
+ });
+ });
+ }*/
 
 function getFile(fileOrId, stream) {
     var self = this;
