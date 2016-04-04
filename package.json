@@ -29,7 +29,7 @@
     "debug": "^2.2.0",
     "extend": "^3.0.0",
     "mongoose": "^4.2.9",
-    "validator": "^4.4.0"
+    "validator": "^5.2.0"
   },
   "devDependencies": {
     "mocha": "^2.3.4",
